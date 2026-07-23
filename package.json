@@ -7,13 +7,24 @@
     "typecheck": "pnpm --filter @truefoundry/utils typecheck && pnpm --filter @truefoundry/utils build && pnpm --filter @truefoundry/server typecheck",
     "lint": "eslint . --fix --cache --cache-location .eslintcache",
     "lint:ci": "eslint . --cache --cache-location .eslintcache",
+    "format": "prettier --write . --cache --config .prettierrc",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,md}\" --cache --error-on-unmatched-pattern --config .prettierrc",
+    "format:fix": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\" --cache --config .prettierrc",
     "test": "pnpm --filter @truefoundry/utils test",
     "dev:server": "pnpm --filter @truefoundry/server dev",
-    "pack:dry": "pnpm --filter @truefoundry/utils pack:dry"
+    "pack:dry": "pnpm --filter @truefoundry/utils pack:dry",
+    "prepare": "husky || true"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "eslint": "^10.7.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "prettier": "^3.5.3",
+    "prettier-plugin-organize-imports": "^4.0.0",
     "typescript-eslint": "^8.65.0"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,md}": "prettier --write --cache --config .prettierrc"
   }
 }

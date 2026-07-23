@@ -1,7 +1,4 @@
-import type {
-  InternalEnrichedAssistantMessage,
-  InternalEnrichedToolCall,
-} from '../../src/core/llm/LLMTypes';
+import type { InternalEnrichedAssistantMessage, InternalEnrichedToolCall } from '../../src/core/llm/LLMTypes';
 import type { ContextMessage } from '../../src/core/runtime/AgentThread.types';
 import { getClosableOpenToolCallIds } from '../../src/core/runtime/OpenToolCallCloser';
 import './harnessMocks';

@@ -1,6 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 // SSE remains required during the Streamable HTTP migration (some servers still speak SSE only).
- 
+
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CallToolRequest, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -104,7 +104,10 @@ function buildConnection(
     listTools: async (cursor?: string) => {
       stampTraceHeaders(headers);
       const response = await client.listTools(cursor ? { cursor } : undefined, requestOptions);
-      return { tools: response.tools, ...(response.nextCursor !== undefined ? { nextCursor: response.nextCursor } : {}) };
+      return {
+        tools: response.tools,
+        ...(response.nextCursor !== undefined ? { nextCursor: response.nextCursor } : {}),
+      };
     },
     callTool: async (callParams: CallToolRequest['params']): Promise<CallToolResult> => {
       stampTraceHeaders(headers);

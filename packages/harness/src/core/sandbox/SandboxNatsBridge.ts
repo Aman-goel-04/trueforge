@@ -1,4 +1,4 @@
-import { type Msg, type NatsConnection, wsconnect } from '@nats-io/nats-core';
+import { wsconnect, type Msg, type NatsConnection } from '@nats-io/nats-core';
 import { context, defaultTextMapGetter } from '@opentelemetry/api';
 import { suppressTracing, unsuppressTracing, W3CTraceContextPropagator } from '@opentelemetry/core';
 import { randomUUID } from 'node:crypto';
@@ -155,7 +155,9 @@ export class SandboxNatsBridge {
 
   private subscribe(): void {
     this.nc.subscribe(`${this.subjectPrefix}.${SANDBOX_NATS_MCP_LEAF}`, {
-      callback: (err, msg) => { this.handle(err, msg, m => this.route(m)); },
+      callback: (err, msg) => {
+        this.handle(err, msg, m => this.route(m));
+      },
     });
   }
 

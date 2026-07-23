@@ -1,9 +1,9 @@
 /** Server session wire schemas. Core Session/Create/Update live in agentSession. */
 import { z } from '@hono/zod-openapi';
-import { TokenPaginationSchema } from '@truefoundry/utils/agent-session';
 import {
   CreateSessionRequestSchema,
   SessionSchema,
+  TokenPaginationSchema,
   UpdateSessionRequestSchema,
 } from '@truefoundry/utils/agent-session';
 

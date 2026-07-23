@@ -41,8 +41,7 @@ export function builtinsFromSpec(input: {
     capabilities.push(askUserQuestion());
   }
 
-  const dynamicSubAgentsEnabled =
-    config?.dynamic_sub_agents === undefined || config.dynamic_sub_agents.enabled;
+  const dynamicSubAgentsEnabled = config?.dynamic_sub_agents === undefined || config.dynamic_sub_agents.enabled;
   if (!isChild && dynamicSubAgentsEnabled) {
     capabilities.push(
       dynamicSubAgents({

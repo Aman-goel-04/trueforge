@@ -1,18 +1,11 @@
-import {
-  MAIN_THREAD_ID,
-  TURN_SERIALIZATION_VERSION,
-} from '../../src/agentSession/models/TurnRecord';
+import { MAIN_THREAD_ID, TURN_SERIALIZATION_VERSION } from '../../src/agentSession/models/TurnRecord';
 import { CancellationReason } from '../../src/agentSession/schemas/turn';
 import type { ISessionStore } from '../../src/agentSession/store/ISessionStore';
 import { InMemorySessionStore } from '../../src/agentSession/store/InMemorySessionStore';
-import {
-  SessionStoreConflictError,
-  SessionStoreNotFoundError,
-} from '../../src/agentSession/store/SessionStoreErrors';
+import { SessionStoreConflictError, SessionStoreNotFoundError } from '../../src/agentSession/store/SessionStoreErrors';
 import { EventType, newEventId } from '../../src/core/events/eventSchemas';
 import { getEmptyUsage } from '../../src/core/llm/LLMTypes';
 import { makeAgentSpec, makeModelMessageEvent, makeRunningTurnRecord, makeTurnCreatedEvent } from './testHelpers';
-
 
 function mustGet<T>(value: T | undefined | null, label = 'value'): T {
   if (value === undefined || value === null) {
@@ -20,7 +13,6 @@ function mustGet<T>(value: T | undefined | null, label = 'value'): T {
   }
   return value;
 }
-
 
 /** Store contract suite — factory-injected so other backends can reuse it. */
 function runStoreContractSuite(createStore: () => ISessionStore) {

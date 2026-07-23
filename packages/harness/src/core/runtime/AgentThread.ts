@@ -17,8 +17,6 @@ import type {
 import { SUB_AGENT_IDENTITY } from '../capabilities/builtins/DynamicSubAgents';
 import type { ToolResponseProcessor } from '../capabilities/ToolResponseProcessor';
 import { AgentHarnessError, InvalidAgentSendInputError } from '../errors';
-import { toOpenAIResponseFormat } from '../llm/responseFormat';
-import { toOpenAIChatMessage } from '../llm/toOpenAIChatMessage';
 import {
   EventType,
   newEventId,
@@ -53,6 +51,8 @@ import {
   type RawAssistantMessage,
 } from '../llm/LLMTypes';
 import type { AgentThreadMetric } from '../llm/metrics';
+import { toOpenAIResponseFormat } from '../llm/responseFormat';
+import { toOpenAIChatMessage } from '../llm/toOpenAIChatMessage';
 import { estimateTokensForString, mergeUsage } from '../llm/usage';
 import { convertMCPServersToTools, type ConvertToolsResult, type MappedMCPTool } from '../mcp/convertMCPServers';
 import { executeToolCalls } from '../mcp/executeToolCalls';
@@ -291,9 +291,7 @@ function getPendingApprovalToolCalls(context: ContextMessage[]): InternalEnriche
 function getPendingClientSideToolCalls(context: ContextMessage[]): InternalEnrichedToolCall[] {
   const openToolCallIds = getOpenToolCallIds(context);
   const assistant = lastAssistantInContext(context);
-  return (assistant?.tool_calls ?? []).filter(
-    tc => openToolCallIds.has(tc.id) && tc.tool_info.is_client_side === true,
-  );
+  return (assistant?.tool_calls ?? []).filter(tc => openToolCallIds.has(tc.id) && tc.tool_info.is_client_side === true);
 }
 
 function validateInputMessageTypesGivenContext(
@@ -323,7 +321,9 @@ function validateInputMessageTypesGivenContext(
       pendingClientSideIds.delete(m.tool_call_id);
     } else {
       const _exhaustive: never = m;
-      throw new InvalidAgentSendInputError(`messages[${String(i)}] has unsupported type: ${JSON.stringify(_exhaustive)}`);
+      throw new InvalidAgentSendInputError(
+        `messages[${String(i)}] has unsupported type: ${JSON.stringify(_exhaustive)}`,
+      );
     }
   }
 

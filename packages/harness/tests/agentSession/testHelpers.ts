@@ -1,17 +1,10 @@
 import type { ITurnResourceResolver } from '../../src/agentSession/ITurnResourceResolver';
-import {
-  MAIN_THREAD_ID,
-  TURN_SERIALIZATION_VERSION,
-  type TurnRecord,
-} from '../../src/agentSession/models/TurnRecord';
+import { MAIN_THREAD_ID, TURN_SERIALIZATION_VERSION, type TurnRecord } from '../../src/agentSession/models/TurnRecord';
 import { AgentSpecSchema, type AgentSpec } from '../../src/agentSession/schemas/agentSpec';
 import { TurnResourceResolver } from '../../src/agentSession/TurnResourceResolver';
 import type { AgentCapability } from '../../src/core/capabilities/AgentCapability';
 import { EventType, newEventId } from '../../src/core/events/eventSchemas';
-import type {
-  ExtendedChatCompletionChunk,
-  RawAssistantMessageWithUsage,
-} from '../../src/core/llm/LLMTypes';
+import type { ExtendedChatCompletionChunk, RawAssistantMessageWithUsage } from '../../src/core/llm/LLMTypes';
 import { getEmptyUsage } from '../../src/core/llm/LLMTypes';
 import type { Sandbox } from '../../src/core/sandbox/Sandbox';
 import { makeMockILLM, makeSilentLogger } from '../core/harnessMocks';
@@ -112,10 +105,7 @@ export function makeTestResolver<TTurnCustom extends object = Record<string, nev
       const resolved = await base.resolveAgentDefinition(input);
       return {
         ...resolved,
-        extraCapabilities: [
-          ...(resolved.extraCapabilities ?? []),
-          ...(options.extraCapabilities ?? []),
-        ],
+        extraCapabilities: [...(resolved.extraCapabilities ?? []), ...(options.extraCapabilities ?? [])],
       };
     },
     close: async () => {

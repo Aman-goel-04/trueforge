@@ -14,7 +14,9 @@ import { InternalEventType } from '../../src/core/runtime/AgentThread.types';
 import { NOOP_AGENT_TRACING } from '../../src/core/tracing/NoopAgentTracing';
 import { emptyLlmStream, makeAgentSpec, makeMockILLM, makeSilentLogger, makeTestResolver } from './testHelpers';
 
-interface PlanState { todo: { title: string; description: string; status: string }[] }
+interface PlanState {
+  todo: { title: string; description: string; status: string }[];
+}
 
 function makePlanShapedCapability(options: {
   enabled: boolean;
@@ -194,9 +196,12 @@ describe('capability_state (tfy.plan fixture)', () => {
 
   it('emit with undeclared key surfaces capability_state_error (emit-key guard)', async () => {
     const badCapability: AgentCapability = {
-      state: { key: 'tfy.plan', load: () => {
-        /* no-op */
-      } },
+      state: {
+        key: 'tfy.plan',
+        load: () => {
+          /* no-op */
+        },
+      },
       preLLMProcessors: [
         {
           // eslint-disable-next-line @typescript-eslint/require-await -- async generator fixture, not awaiting I/O

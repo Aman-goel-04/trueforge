@@ -8,7 +8,10 @@ let mockConnectImpl: (type: string) => void = () => {
   /* no-op */
 };
 
-interface MockTransport { __type: string; sessionId?: string }
+interface MockTransport {
+  __type: string;
+  sessionId?: string;
+}
 
 jest.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
   Client: class {

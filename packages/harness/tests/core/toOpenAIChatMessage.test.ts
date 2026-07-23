@@ -93,9 +93,7 @@ describe('toOpenAIChatMessage', () => {
       role: 'user',
       content: 'hi',
     });
-    expect(
-      toOpenAIChatMessage({ role: 'tool', tool_call_id: 'call-1', content: 'result' }),
-    ).toEqual({
+    expect(toOpenAIChatMessage({ role: 'tool', tool_call_id: 'call-1', content: 'result' })).toEqual({
       role: 'tool',
       tool_call_id: 'call-1',
       content: 'result',
@@ -191,9 +189,7 @@ describe('AgentThread LLM request mapping (end-to-end)', () => {
 
     expect(capturedBody).toBeDefined();
     const messages = capturedBody?.messages ?? [];
-    const replayed = messages
-      .map(m => asRecord(m))
-      .find(m => m['role'] === 'assistant' && 'thinking_blocks' in m);
+    const replayed = messages.map(m => asRecord(m)).find(m => m['role'] === 'assistant' && 'thinking_blocks' in m);
     expect(replayed).toBeDefined();
     expect(replayed?.['thinking_blocks']).toEqual(assistant.thinking_blocks);
     expect(replayed?.['reasoning_content']).toBe('plain reasoning');

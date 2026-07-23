@@ -203,10 +203,7 @@ export class RemoteMCP implements ToolSource {
     return { result: response.result, wasInitialized: response.wasInitialized };
   }
 
-  toolCallInfo(
-    params: CallToolRequest['params'],
-    _resolveUnderlyingTool?: boolean,
-  ): Promise<InternalToolCallInfo> {
+  toolCallInfo(params: CallToolRequest['params'], _resolveUnderlyingTool?: boolean): Promise<InternalToolCallInfo> {
     void _resolveUnderlyingTool;
     return Promise.resolve({
       type: 'mcp',

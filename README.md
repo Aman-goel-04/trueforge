@@ -2,10 +2,10 @@
 
 pnpm workspace with:
 
-| Package | Path | Role |
-| --- | --- | --- |
-| `@truefoundry/utils` | [`packages/harness`](packages/harness) | Published library (`core` + `agentSession`) |
-| `@truefoundry/server` | [`packages/server`](packages/server) | Future CLI/HTTP server (private; depends on utils) |
+| Package               | Path                                   | Role                                               |
+| --------------------- | -------------------------------------- | -------------------------------------------------- |
+| `@truefoundry/utils`  | [`packages/harness`](packages/harness) | Published library (`core` + `agentSession`)        |
+| `@truefoundry/server` | [`packages/server`](packages/server)   | Future CLI/HTTP server (private; depends on utils) |
 
 ## Develop
 

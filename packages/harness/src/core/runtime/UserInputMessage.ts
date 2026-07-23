@@ -187,7 +187,7 @@ export async function processAgentUserInput(
           size: file.buffer.length,
         });
       } else {
-        throw (result).reason;
+        throw result.reason;
       }
     }
     if (uploadedFiles.length > 0) {

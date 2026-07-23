@@ -6,10 +6,10 @@ import { z } from '@hono/zod-openapi';
 import {
   EventType,
   SessionEventItemSchema,
+  TokenPaginationSchema,
   TurnCreatedEventSchema,
   TurnDoneEventSchema,
 } from '@truefoundry/utils/agent-session';
-import { TokenPaginationSchema } from '@truefoundry/utils/agent-session';
 import {
   MCPAuthRequiredEventSchema,
   MCPInitializeEventSchema,

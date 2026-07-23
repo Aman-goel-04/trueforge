@@ -71,7 +71,9 @@ export class TFYSandboxProvider implements SandboxProvider {
 
       const controller = new AbortController();
       const clientTimeoutMs = (this.execTimeoutSeconds + CLIENT_TIMEOUT_BUFFER_SECONDS) * 1000;
-      const timer = setTimeout(() => { controller.abort(); }, clientTimeoutMs);
+      const timer = setTimeout(() => {
+        controller.abort();
+      }, clientTimeoutMs);
 
       try {
         const response = await fetch(`${this.serverUrl}/exec`, {
@@ -91,7 +93,10 @@ export class TFYSandboxProvider implements SandboxProvider {
         return result;
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'AbortError') {
-          this.logger.error(`Sandbox exec timed out after ${String(this.execTimeoutSeconds)}s`, extractErrorLogFields(e));
+          this.logger.error(
+            `Sandbox exec timed out after ${String(this.execTimeoutSeconds)}s`,
+            extractErrorLogFields(e),
+          );
           return { success: false, error: `Sandbox exec timed out after ${String(this.execTimeoutSeconds)}s` };
         }
         this.logger.error('Sandbox exec failed', extractErrorLogFields(e));

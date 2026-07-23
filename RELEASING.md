@@ -74,14 +74,14 @@ Publish a real version when CI or teammates need it.
 
 ## Deferred to the real OSS release — grep for `TODO(oss)`
 
-| Item | Where |
-| --- | --- |
-| License: UNLICENSED → Apache-2.0 + LICENSE file | both package.jsons, repo root |
-| Ship README / remove prepack guard / npmignore md-strip | packages/harness |
-| Add repository/homepage/bugs/keywords metadata | packages/harness/package.json |
-| Add `--provenance` to publish | .github/workflows/release.yml |
-| Replace `internal.devtest.truefoundry.tech` URLs | packages/server/src/config |
-| Private-repo links in shipped sandbox scripts | packages/harness/src/core/sandbox/scripts/mcp_client.py |
-| Sourcemaps/declarationMap decision | packages/harness/tsup.config.ts, tsconfig.build.json |
-| CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / CODEOWNERS / CI for external PRs | .github/ |
-| Secret-scan history, enable secret scanning + push protection, flip repo public | GitHub settings |
+| Item                                                                            | Where                                                   |
+| ------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| License: UNLICENSED → Apache-2.0 + LICENSE file                                 | both package.jsons, repo root                           |
+| Ship README / remove prepack guard / npmignore md-strip                         | packages/harness                                        |
+| Add repository/homepage/bugs/keywords metadata                                  | packages/harness/package.json                           |
+| Add `--provenance` to publish                                                   | .github/workflows/release.yml                           |
+| Replace `internal.devtest.truefoundry.tech` URLs                                | packages/server/src/config                              |
+| Private-repo links in shipped sandbox scripts                                   | packages/harness/src/core/sandbox/scripts/mcp_client.py |
+| Sourcemaps/declarationMap decision                                              | packages/harness/tsup.config.ts, tsconfig.build.json    |
+| CONTRIBUTING / SECURITY / CODE_OF_CONDUCT / CODEOWNERS / CI for external PRs    | .github/                                                |
+| Secret-scan history, enable secret scanning + push protection, flip repo public | GitHub settings                                         |

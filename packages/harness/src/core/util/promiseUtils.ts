@@ -12,10 +12,13 @@ export function withTimeout<T>(p: Promise<T>, ms: number, label?: string): Promi
   let timer: ReturnType<typeof setTimeout>;
 
   const timeout = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () => { reject(new PromiseTimeoutError(label ? `Timed out after ${String(ms)}ms (${label})` : `Timed out after ${String(ms)}ms`)); },
-      ms,
-    );
+    timer = setTimeout(() => {
+      reject(
+        new PromiseTimeoutError(
+          label ? `Timed out after ${String(ms)}ms (${label})` : `Timed out after ${String(ms)}ms`,
+        ),
+      );
+    }, ms);
   });
 
   return Promise.race([p, timeout]).finally(() => {
@@ -27,7 +30,10 @@ export async function* mergeAsyncGenerators<T>(
   generators: AsyncGenerator<T>[],
   logger: Logger,
 ): AsyncGenerator<T, void, unknown> {
-  interface PendingResult { idx: number; result: IteratorResult<T, void> }
+  interface PendingResult {
+    idx: number;
+    result: IteratorResult<T, void>;
+  }
   const pending = new Map<number, Promise<PendingResult>>();
 
   const getNextIteration = (idx: number): Promise<PendingResult> => {

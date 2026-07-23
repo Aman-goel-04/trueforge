@@ -23,7 +23,7 @@ export function makeMockILLM(overrides: Partial<ILLM> = {}): ILLM {
  */
 export function makeSilentLogger(): Logger {
   const logger = winston.createLogger({ silent: true, transports: [] });
-  logger.child = (() => logger);
+  logger.child = () => logger;
   return logger;
 }
 
@@ -40,16 +40,15 @@ export function makeMockIMCPServer(params: {
     id: params.name,
     preload: params.preload,
     hasPreloadedTools: params.hasPreloadedTools ?? params.preload,
-    listTools: jest.fn(
-      (): Promise<ListToolsResponse> =>
-        Promise.resolve({
-          result: {
-            tools: params.tools ?? [
-              { name: 'tool_a', description: 'A', inputSchema: OBJECT_INPUT_SCHEMA, preload: params.preload },
-            ],
-          },
-          wasInitialized: undefined,
-        }),
+    listTools: jest.fn((): Promise<ListToolsResponse> =>
+      Promise.resolve({
+        result: {
+          tools: params.tools ?? [
+            { name: 'tool_a', description: 'A', inputSchema: OBJECT_INPUT_SCHEMA, preload: params.preload },
+          ],
+        },
+        wasInitialized: undefined,
+      }),
     ),
     callTool: jest.fn(),
     toolCallInfo: jest.fn(),

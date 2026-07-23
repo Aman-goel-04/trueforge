@@ -121,9 +121,7 @@ function formatAssistantContent(
   if (!content) {
     return '';
   }
-  return content
-    .map(part => (part.type === 'text' ? part.text : part.refusal))
-    .join('\n');
+  return content.map(part => (part.type === 'text' ? part.text : part.refusal)).join('\n');
 }
 
 function createSummarizationCandidate(context: ContextMessage[]) {

@@ -64,10 +64,7 @@ export function isClientSideToolRequiredResponse(
 }
 
 export type CallToolResponse =
-  | CallToolResultResponse
-  | CallToolCreateSubAgentResponse
-  | ApprovalRequiredResponse
-  | ClientSideToolRequiredResponse;
+  CallToolResultResponse | CallToolCreateSubAgentResponse | ApprovalRequiredResponse | ClientSideToolRequiredResponse;
 
 export function isCallToolResponseCreateSubAgent(
   response: CallToolResponse,

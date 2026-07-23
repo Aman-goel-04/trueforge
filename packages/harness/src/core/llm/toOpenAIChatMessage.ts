@@ -1,7 +1,4 @@
-import type {
-  ChatCompletionContentPart,
-  ChatCompletionMessageParam,
-} from 'openai/resources/chat';
+import type { ChatCompletionContentPart, ChatCompletionMessageParam } from 'openai/resources/chat';
 import type { LLMContextMessage } from '../runtime/AgentThread.types';
 import type { LLMUserMessage } from './LLMTypes';
 

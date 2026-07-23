@@ -29,4 +29,3 @@ export type WithRegisteredPassthrough<T> = [RegisteredPassthroughEvent] extends 
   ? T
   : // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- false branch only when registry is non-empty; empty registry is `never`
     T | RegisteredPassthroughEvent;
-

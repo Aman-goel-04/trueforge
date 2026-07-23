@@ -6,6 +6,7 @@ import {
   DEFAULT_PREVIEW_NUMBER_OF_CHARACTERS,
   DEFAULT_TOTAL_TOOL_TOKEN_THRESHOLD,
 } from '../../core/capabilities/builtins/LargeToolResponse';
+import { ResponseFormatSchema } from '../../core/llm/responseFormat';
 import {
   DEFAULT_DISABLE_TOOLS,
   DEFAULT_ENABLE_TOOLS,
@@ -14,7 +15,6 @@ import {
   REQUIRE_APPROVAL_TOOLS_SELECTOR_TAGS,
   TOOLS_SELECTOR_TAGS,
 } from '../../core/mcp/toolSelectors';
-import { ResponseFormatSchema } from '../../core/llm/responseFormat';
 
 export const DEFAULT_AGENT_CONFIG_ITERATION_LIMIT = 100;
 

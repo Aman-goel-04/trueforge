@@ -150,7 +150,10 @@ export function dynamicSubAgents(options: {
   sandboxAvailable: boolean;
   tracing: AgentTracing;
 }): AgentCapability {
-  const toolSet = new DynamicSubAgents({ ...(options.modelSetConfig !== undefined ? { modelSetConfig: options.modelSetConfig } : {}), tracing: options.tracing });
+  const toolSet = new DynamicSubAgents({
+    ...(options.modelSetConfig !== undefined ? { modelSetConfig: options.modelSetConfig } : {}),
+    tracing: options.tracing,
+  });
   return {
     systemToolSets: [toolSet],
     instructionBuilders: [

@@ -100,7 +100,9 @@ export const SkillsFileSchema = z
     skills: z.array(SkillEntrySchema),
   })
   .strict()
-  .superRefine((file, ctx) => { uniqueNames(file.skills, ctx); });
+  .superRefine((file, ctx) => {
+    uniqueNames(file.skills, ctx);
+  });
 
 export type ModelEntry = z.infer<typeof ModelEntrySchema>;
 export type McpServerEntry = z.infer<typeof McpServerEntrySchema>;

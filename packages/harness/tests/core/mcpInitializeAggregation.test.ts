@@ -5,7 +5,11 @@ import { convertMCPServersToTools } from '../../src/core/mcp/convertMCPServers';
 import './harnessMocks';
 import { OBJECT_INPUT_SCHEMA, makeMockIMCPServer } from './harnessMocks';
 
-function makeServer(params: { name: string; initInfo?: MCPServerInitInfo; tools?: AgentToolSchema[] | undefined }): IToolSet {
+function makeServer(params: {
+  name: string;
+  initInfo?: MCPServerInitInfo;
+  tools?: AgentToolSchema[] | undefined;
+}): IToolSet {
   const base = makeMockIMCPServer({
     name: params.name,
     preload: true,
@@ -13,16 +17,15 @@ function makeServer(params: { name: string; initInfo?: MCPServerInitInfo; tools?
   });
   return {
     ...base,
-    listTools: jest.fn(
-      (): Promise<ListToolsResponse> =>
-        Promise.resolve({
-          result: {
-            tools: params.tools ?? [
-              { name: 'do_thing', description: 'Does a thing', inputSchema: OBJECT_INPUT_SCHEMA, preload: true },
-            ],
-          },
-          wasInitialized: params.initInfo,
-        }),
+    listTools: jest.fn((): Promise<ListToolsResponse> =>
+      Promise.resolve({
+        result: {
+          tools: params.tools ?? [
+            { name: 'do_thing', description: 'Does a thing', inputSchema: OBJECT_INPUT_SCHEMA, preload: true },
+          ],
+        },
+        wasInitialized: params.initInfo,
+      }),
     ),
   };
 }
