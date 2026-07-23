@@ -57,13 +57,16 @@ export async function convertMCPServersToTools(params: {
       initializationInfo.push(wasInitialized);
     }
 
-    const toolSet = allServers[i]!;
+    const toolSet = allServers[i];
+    if (toolSet === undefined) {
+      throw new Error(`Unreachable: missing tool set at index ${String(i)}`);
+    }
     const sortedTools = [...mcpTools.tools].sort((a, b) => (a.name > b.name ? 1 : -1));
     for (const mcpTool of sortedTools) {
       if (!mcpTool.preload) continue;
       const { name: toolName } = getUniqueSanitizedToolName(mcpTool.name, registeredNames);
       registeredNames.add(toolName);
-      const description = `mcp server: ${serverName}\n${mcpTool.description || ''}`;
+      const description = `mcp server: ${serverName}\n${mcpTool.description ?? ''}`;
       tools.push({
         type: 'function',
         function: {
@@ -71,8 +74,8 @@ export async function convertMCPServersToTools(params: {
           description: description,
           parameters: {
             type: 'object',
-            properties: mcpTool.inputSchema?.properties ?? {},
-            required: (mcpTool.inputSchema?.required as string[]) ?? [],
+            properties: mcpTool.inputSchema.properties ?? {},
+            required: mcpTool.inputSchema.required ?? [],
           },
         },
       });

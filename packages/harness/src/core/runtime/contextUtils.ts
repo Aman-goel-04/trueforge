@@ -55,7 +55,8 @@ export function isApprovalDecisionMessage(msg: AgentThreadRuntimeSendInput): msg
 }
 
 function isUserToolApprovalDecisionMessage(msg: ContextMessage): msg is AgentApprovalDecisionMessage {
-  return 'type' in msg && msg.type === EventType.USER_TOOL_APPROVAL;
+  // `'type' in msg` already narrows to AgentApprovalDecisionMessage (literal type).
+  return 'type' in msg;
 }
 
 export function isClientSideToolResponseMessage(msg: AgentThreadRuntimeSendInput): msg is UserToolResponseMessage {
@@ -67,7 +68,8 @@ export function isInputUserMessage(msg: AgentThreadRuntimeSendInput): msg is Age
 }
 
 export function isLLMToolMessage(msg: AgentThreadRuntimeSendInput): msg is LLMToolMessage {
-  return 'role' in msg && msg.role === 'tool';
+  // `'role' in msg` already narrows to LLMToolMessage among AgentThreadRuntimeSendInput.
+  return 'role' in msg;
 }
 
 export function isInternalThreadDoneError(
@@ -118,7 +120,7 @@ export function toEnrichedToolCall(toolCall: InternalEnrichedToolCall): Enriched
 }
 
 export function assistantMessageContentToStringForSubAgent(
-  content: string | Array<{ type?: string; text?: string } | string> | null | undefined,
+  content: string | ({ type?: string; text?: string } | string)[] | null | undefined,
   errorMessage?: string,
 ): string {
   let text = '';

@@ -112,6 +112,20 @@ Object.freeze(CONTINUATION_MESSAGE);
 // https://platform.openai.com/tokenizer
 const CONTINUATION_MESSAGE_TOKENS = 42;
 
+function formatAssistantContent(
+  content: string | ({ type: 'text'; text: string } | { type: 'refusal'; refusal: string })[] | null | undefined,
+): string {
+  if (typeof content === 'string') {
+    return content;
+  }
+  if (!content) {
+    return '';
+  }
+  return content
+    .map(part => (part.type === 'text' ? part.text : part.refusal))
+    .join('\n');
+}
+
 function createSummarizationCandidate(context: ContextMessage[]) {
   let candidate = '';
   let index = -1;
@@ -126,7 +140,7 @@ function createSummarizationCandidate(context: ContextMessage[]) {
     switch (m.role) {
       case 'user':
         if (typeof m.content === 'string') {
-          candidate += `<${index}><user>:` + m.content;
+          candidate += `<${String(index)}><user>:` + m.content;
         } else {
           const parts: string[] = [];
           for (const p of m.content) {
@@ -136,19 +150,19 @@ function createSummarizationCandidate(context: ContextMessage[]) {
               parts.push(`[user attached a ${p.type} here, no longer available after summarization]`);
             }
           }
-          candidate += `<${index}><user>:` + parts.join('\n');
+          candidate += `<${String(index)}><user>:` + parts.join('\n');
         }
         break;
       case 'tool':
-        candidate += `<${index}><tool-response id=${m.tool_call_id}>:` + m.content;
+        candidate += `<${String(index)}><tool-response id=${m.tool_call_id}>:` + m.content;
         break;
       case 'assistant':
         for (const block of m.thinking_blocks ?? []) {
           if (block.type === 'thinking') {
-            candidate += `<${index}><assistant-thinking>:` + block.thinking;
+            candidate += `<${String(index)}><assistant-thinking>:` + block.thinking;
           }
         }
-        candidate += `<${index}><assistant>:` + m.content;
+        candidate += `<${String(index)}><assistant>:` + formatAssistantContent(m.content);
         for (const t of m.tool_calls ?? []) {
           candidate += `<tool-call id=${t.id} name=${t.function.name}>:` + t.function.arguments;
         }

@@ -118,7 +118,7 @@ export const parseApiKeysByName = (): Record<string, string> => {
   const pattern = /^MODEL_(.+)_API_KEY$/;
   const byName: Record<string, string> = {};
   for (const [envKey, raw] of Object.entries(process.env)) {
-    const match = envKey.match(pattern);
+    const match = pattern.exec(envKey);
     if (!match || raw === undefined) continue;
     const name = match[1];
     if (name === undefined) continue;
@@ -213,7 +213,7 @@ export interface ServerConfiguration {
 
 const configuration: ServerConfiguration = {
   PORT: parsePort(getEnv('PORT')),
-  MODEL_API_KEY: getEnv('MODEL_API_KEY', { required: true })!,
+  MODEL_API_KEY: getEnv('MODEL_API_KEY', { required: true }) ?? '',
   MODEL_API_KEY_BY_NAME: parseApiKeysByName(),
   MODEL_HEADERS: parseHeaders('MODEL_HEADERS', getEnv('MODEL_HEADERS')),
   MODEL_HEADERS_BY_NAME: parseHeadersByName('MODEL'),

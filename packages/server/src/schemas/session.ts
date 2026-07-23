@@ -22,7 +22,7 @@ export const ListSessionsRequestQuerySchema = z
       .max(SESSIONS_MAX_LIMIT)
       .optional()
       .default(DEFAULT_SESSIONS_LIMIT)
-      .describe(`Page size. Defaults to ${DEFAULT_SESSIONS_LIMIT}, max ${SESSIONS_MAX_LIMIT}.`),
+      .describe(`Page size. Defaults to ${String(DEFAULT_SESSIONS_LIMIT)}, max ${String(SESSIONS_MAX_LIMIT)}.`),
     order: z
       .enum(['asc', 'desc'])
       .optional()

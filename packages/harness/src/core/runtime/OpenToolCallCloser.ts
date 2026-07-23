@@ -36,15 +36,19 @@ export function getClosableOpenToolCallIds(context: ContextMessage[]): Set<strin
     return new Set();
   }
 
-  const lastAssistant = context[lastIdx]!;
-  if (!isLLMContextMessage(lastAssistant) || lastAssistant.role !== 'assistant') {
+  const lastAssistant = context[lastIdx];
+  if (lastAssistant === undefined || !isLLMContextMessage(lastAssistant) || lastAssistant.role !== 'assistant') {
     throw new Error('Unreachable');
   }
   if (!lastAssistant.tool_calls) {
     return new Set();
   }
 
-  if (lastAssistant.tool_calls.some(tc => tc.tool_info.is_approval_required || tc.tool_info.is_client_side)) {
+  if (
+    lastAssistant.tool_calls.some(
+      tc => tc.tool_info.is_approval_required === true || tc.tool_info.is_client_side === true,
+    )
+  ) {
     return new Set();
   }
 
@@ -63,6 +67,7 @@ export function getClosableOpenToolCallIds(context: ContextMessage[]): Set<strin
 }
 
 export class OpenToolCallCloser implements PreSendContextProcessor {
+  // eslint-disable-next-line @typescript-eslint/require-await -- async *: AsyncIterable contract; body is sync
   async *processPreSend(
     execution: Readonly<AgentThreadExecutionContext>,
   ): AsyncGenerator<AgentContextProcessorAppendContext, void, unknown> {

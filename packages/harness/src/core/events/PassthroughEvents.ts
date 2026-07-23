@@ -20,3 +20,13 @@ export type RegisteredPassthroughEvent = {
     ? Event & { type: K }
     : never;
 }[keyof AgentPassthroughEventSchemaMap];
+
+/**
+ * Include {@link RegisteredPassthroughEvent} in a union only when the registry
+ * is non-empty. Avoids `T | never` when no augmentations are present.
+ */
+export type WithRegisteredPassthrough<T> = [RegisteredPassthroughEvent] extends [never]
+  ? T
+  : // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents -- false branch only when registry is non-empty; empty registry is `never`
+    T | RegisteredPassthroughEvent;
+

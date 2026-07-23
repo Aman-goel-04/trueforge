@@ -48,22 +48,21 @@ export interface CreateSandboxProviderInput {
 /** Builds the provider for the given settings. Construction is cheap and does no I/O. */
 export function createSandboxProvider(input: CreateSandboxProviderInput): SandboxProvider {
   const { settings } = input;
-  switch (settings.type) {
-    case 'daytona':
-      return new DaytonaSandboxProvider({
-        apiKey: settings.apiKey,
-        tenantName: input.tenantName,
-        settings: {
-          snapshotName: settings.snapshotName,
-          timeoutMs: settings.timeoutMs,
-          autoStopIntervalInMinutes: settings.autoStopIntervalInMinutes,
-          autoArchiveIntervalInMinutes: settings.autoArchiveIntervalInMinutes,
-          autoDeleteIntervalInMinutes: settings.autoDeleteIntervalInMinutes,
-        },
-        fileMaxBytes: input.fileMaxBytes,
-        natsBridgePort: SANDBOX_NATS_WS_PORT,
-        previewUrlExpirySeconds: input.previewUrlExpirySeconds,
-        logger: input.logger,
-      });
-  }
+  // Currently only Daytona is registered; switch on settings.type when more backends are added
+  // so the return type stays exhaustive (TS2366).
+  return new DaytonaSandboxProvider({
+    apiKey: settings.apiKey,
+    tenantName: input.tenantName,
+    settings: {
+      snapshotName: settings.snapshotName,
+      timeoutMs: settings.timeoutMs,
+      autoStopIntervalInMinutes: settings.autoStopIntervalInMinutes,
+      autoArchiveIntervalInMinutes: settings.autoArchiveIntervalInMinutes,
+      autoDeleteIntervalInMinutes: settings.autoDeleteIntervalInMinutes,
+    },
+    fileMaxBytes: input.fileMaxBytes,
+    natsBridgePort: SANDBOX_NATS_WS_PORT,
+    previewUrlExpirySeconds: input.previewUrlExpirySeconds,
+    logger: input.logger,
+  });
 }

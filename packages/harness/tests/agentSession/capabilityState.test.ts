@@ -14,7 +14,7 @@ import { InternalEventType } from '../../src/core/runtime/AgentThread.types';
 import { NOOP_AGENT_TRACING } from '../../src/core/tracing/NoopAgentTracing';
 import { emptyLlmStream, makeAgentSpec, makeMockILLM, makeSilentLogger, makeTestResolver } from './testHelpers';
 
-type PlanState = { todo: Array<{ title: string; description: string; status: string }> };
+interface PlanState { todo: { title: string; description: string; status: string }[] }
 
 function makePlanShapedCapability(options: {
   enabled: boolean;
@@ -23,6 +23,7 @@ function makePlanShapedCapability(options: {
 }): AgentCapability {
   const emitState = options.emitState;
   const processor = {
+    // eslint-disable-next-line @typescript-eslint/require-await -- async generator fixture, not awaiting I/O
     async *processPreLLM(): AsyncGenerator<AgentContextProcessorOutput> {
       if (!options.enabled || !emitState) return;
       yield {
@@ -78,7 +79,8 @@ describe('capability_state (tfy.plan fixture)', () => {
         ],
       }),
     });
-    for await (const _ of turn1.stream()) {
+    for await (const event of turn1.stream()) {
+      void event;
       // drain
     }
     const stored1 = await store.getTurn({
@@ -107,7 +109,8 @@ describe('capability_state (tfy.plan fixture)', () => {
     });
     // Hydration happens in run() when threads are built (before stream).
     expect(loads).toEqual([planV1]);
-    for await (const _ of turn2.stream()) {
+    for await (const event of turn2.stream()) {
+      void event;
       // drain
     }
     const stored2 = await store.getTurn({
@@ -139,7 +142,8 @@ describe('capability_state (tfy.plan fixture)', () => {
         extraCapabilities: [makePlanShapedCapability({ enabled: true, emitState: planV1 })],
       }),
     });
-    for await (const _ of turn1.stream()) {
+    for await (const event of turn1.stream()) {
+      void event;
       // drain
     }
 
@@ -169,7 +173,8 @@ describe('capability_state (tfy.plan fixture)', () => {
     });
     expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("Dropping unclaimed capability_state key 'tfy.plan'"));
 
-    for await (const _ of turn3.stream()) {
+    for await (const event of turn3.stream()) {
+      void event;
       // drain
     }
     const prior = await store.getTurn({
@@ -189,9 +194,12 @@ describe('capability_state (tfy.plan fixture)', () => {
 
   it('emit with undeclared key surfaces capability_state_error (emit-key guard)', async () => {
     const badCapability: AgentCapability = {
-      state: { key: 'tfy.plan', load: () => {} },
+      state: { key: 'tfy.plan', load: () => {
+        /* no-op */
+      } },
       preLLMProcessors: [
         {
+          // eslint-disable-next-line @typescript-eslint/require-await -- async generator fixture, not awaiting I/O
           async *processPreLLM(): AsyncGenerator<AgentContextProcessorOutput> {
             yield {
               type: InternalEventType.CAPABILITY_STATE,
@@ -213,7 +221,8 @@ describe('capability_state (tfy.plan fixture)', () => {
       tracing: NOOP_AGENT_TRACING,
       logger: makeSilentLogger(),
     });
-    for await (const _ of thread.send([{ type: EventType.USER_MESSAGE, content: 'x' }])) {
+    for await (const event of thread.send([{ type: EventType.USER_MESSAGE, content: 'x' }])) {
+      void event;
       // drain send
     }
     let errorMessage: string | undefined;

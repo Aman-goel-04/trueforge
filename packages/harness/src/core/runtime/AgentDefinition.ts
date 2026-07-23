@@ -3,9 +3,7 @@ import type { LLMUserMessage } from '../llm/LLMTypes';
 import type { ResponseFormat } from '../llm/responseFormat';
 import type { IToolSet } from '../mcp/IMCPServer';
 
-export interface ModelParams {
-  [key: string]: unknown;
-}
+export type ModelParams = Record<string, unknown>;
 
 /**
  * Static definition of an agent. Represents the authored configuration,

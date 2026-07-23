@@ -113,7 +113,9 @@ export class RemoteMCP implements ToolSource {
   }
 
   private async closeAndClearConnection(): Promise<void> {
-    await this._connection?.close().catch(() => {});
+    await this._connection?.close().catch(() => {
+      /* no-op */
+    });
     this._connection = undefined;
   }
 
@@ -201,17 +203,18 @@ export class RemoteMCP implements ToolSource {
     return { result: response.result, wasInitialized: response.wasInitialized };
   }
 
-  async toolCallInfo(
+  toolCallInfo(
     params: CallToolRequest['params'],
     _resolveUnderlyingTool?: boolean,
   ): Promise<InternalToolCallInfo> {
-    return {
+    void _resolveUnderlyingTool;
+    return Promise.resolve({
       type: 'mcp',
       original_tool_name: params.name,
       mcp_server_id: this.id,
       mcp_server_name: this.name,
       is_approval_required: false,
-    };
+    });
   }
 
   private async connectIfNeeded(headers: Record<string, string>): Promise<MCPServerInitInfo | undefined> {

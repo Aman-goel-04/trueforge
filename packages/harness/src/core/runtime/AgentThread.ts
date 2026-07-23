@@ -122,10 +122,10 @@ function deriveAgentThreadState(context: ContextMessage[]): AgentThreadState {
   const assistant = lastAssistantInContext(context);
   const decisions = scanApprovalDecisions(context);
   const hasPendingApproval = assistant?.tool_calls?.some(
-    tc => openToolCallIds.has(tc.id) && tc.tool_info?.is_approval_required === true && !decisions.has(tc.id),
+    tc => openToolCallIds.has(tc.id) && tc.tool_info.is_approval_required === true && !decisions.has(tc.id),
   );
   const hasPendingClientSideTool = assistant?.tool_calls?.some(
-    tc => openToolCallIds.has(tc.id) && tc.tool_info?.is_client_side === true,
+    tc => openToolCallIds.has(tc.id) && tc.tool_info.is_client_side === true,
   );
   return hasPendingApproval || hasPendingClientSideTool ? 'user-input-required' : 'tool-response-required';
 }
@@ -142,7 +142,8 @@ function getOpenToolCallIds(context: ContextMessage[]): Set<string> {
   const resolvedToolCallIds = new Set<string>();
   const openToolCallIds = new Set<string>();
   for (let i = context.length - 1; i >= 0; i--) {
-    const msg = context[i]!;
+    const msg = context[i];
+    if (msg === undefined) continue;
     if (!isLLMContextMessage(msg)) continue;
     if (msg.role === 'tool') {
       resolvedToolCallIds.add(msg.tool_call_id);
@@ -225,7 +226,9 @@ function buildModelMessageEvent({
   id: string;
 }): ModelMessageEvent {
   // `thinking_blocks` is persisted to the Redis context for replay; strip it from the client event.
-  const { role: _, tool_calls, thinking_blocks: _thinkingBlocks, ...rest } = assistantMessage;
+  const { role, tool_calls, thinking_blocks, ...rest } = assistantMessage;
+  void role;
+  void thinking_blocks;
   const event: ModelMessageEvent = {
     ...rest,
     ...(tool_calls !== undefined ? { tool_calls: tool_calls.map(toEnrichedToolCall) } : {}),
@@ -245,7 +248,7 @@ function validateUserMessage(
   index: number,
 ): void {
   if (isEmptyMessageContent(message.content)) {
-    throw new InvalidAgentSendInputError(`messages[${index}] user message has empty content`);
+    throw new InvalidAgentSendInputError(`messages[${String(index)}] user message has empty content`);
   }
   if (blockingOpenToolCallIds.size > 0) {
     throw new InvalidAgentSendInputError('user message cannot be sent while approvals or questions are pending');
@@ -259,7 +262,7 @@ function validateToolMessage(
 ): void {
   if (!openToolCallIds.has(message.tool_call_id)) {
     throw new InvalidAgentSendInputError(
-      `messages[${index}] no open tool call for tool_call_id '${message.tool_call_id}'`,
+      `messages[${String(index)}] no open tool call for tool_call_id '${message.tool_call_id}'`,
     );
   }
 }
@@ -271,7 +274,7 @@ function validateApprovalMessage(
 ): void {
   if (!pendingApprovalIds.has(message.tool_call_id)) {
     throw new InvalidAgentSendInputError(
-      `messages[${index}] no pending approval for tool_call_id '${message.tool_call_id}'`,
+      `messages[${String(index)}] no pending approval for tool_call_id '${message.tool_call_id}'`,
     );
   }
 }
@@ -281,7 +284,7 @@ function getPendingApprovalToolCalls(context: ContextMessage[]): InternalEnriche
   const decisions = scanApprovalDecisions(context);
   const assistant = lastAssistantInContext(context);
   return (assistant?.tool_calls ?? []).filter(
-    tc => openToolCallIds.has(tc.id) && tc.tool_info?.is_approval_required === true && !decisions.has(tc.id),
+    tc => openToolCallIds.has(tc.id) && tc.tool_info.is_approval_required === true && !decisions.has(tc.id),
   );
 }
 
@@ -289,7 +292,7 @@ function getPendingClientSideToolCalls(context: ContextMessage[]): InternalEnric
   const openToolCallIds = getOpenToolCallIds(context);
   const assistant = lastAssistantInContext(context);
   return (assistant?.tool_calls ?? []).filter(
-    tc => openToolCallIds.has(tc.id) && tc.tool_info?.is_client_side === true,
+    tc => openToolCallIds.has(tc.id) && tc.tool_info.is_client_side === true,
   );
 }
 
@@ -306,7 +309,8 @@ function validateInputMessageTypesGivenContext(
   const pendingClientSideIds = new Set(getPendingClientSideToolCalls(context).map(tc => tc.id));
 
   for (let i = 0; i < messages.length; i++) {
-    const m = messages[i]!;
+    const m = messages[i];
+    if (m === undefined) continue;
     if (isApprovalDecisionMessage(m)) {
       validateApprovalMessage(m, pendingApprovalIds, i);
       pendingApprovalIds.delete(m.tool_call_id);
@@ -319,7 +323,7 @@ function validateInputMessageTypesGivenContext(
       pendingClientSideIds.delete(m.tool_call_id);
     } else {
       const _exhaustive: never = m;
-      throw new InvalidAgentSendInputError(`messages[${i}] has unsupported type: ${JSON.stringify(_exhaustive)}`);
+      throw new InvalidAgentSendInputError(`messages[${String(i)}] has unsupported type: ${JSON.stringify(_exhaustive)}`);
     }
   }
 
@@ -361,7 +365,7 @@ async function buildModelMessageDeltaEvent({
     return;
   }
 
-  const toolCalls = delta.tool_calls || [];
+  const toolCalls = delta.tool_calls ?? [];
   for (const toolCall of toolCalls) {
     if (toolCall.function?.name) {
       const toolInfo = toolMapping.get(toolCall.function.name);
@@ -377,7 +381,10 @@ async function buildModelMessageDeltaEvent({
   }
 
   // Strip legacy `function_call` and replay-only `thinking_blocks` so neither reaches the client or delta stream.
-  const { role: _, function_call: _functionCall, thinking_blocks: _thinkingBlocks, ...deltaWithoutRole } = delta;
+  const { role, function_call, thinking_blocks, ...deltaWithoutRole } = delta;
+  void role;
+  void function_call;
+  void thinking_blocks;
   return {
     ...deltaWithoutRole,
     type: EventType.MODEL_MESSAGE_DELTA,
@@ -394,7 +401,8 @@ async function buildContextAssistantMessage(
 ): Promise<InternalEnrichedAssistantMessage> {
   // Omit tool_calls when empty; OpenAI rejects `tool_calls: []` on replay.
   if (!assistantMessage.tool_calls?.length) {
-    const { tool_calls: _drop, ...rest } = assistantMessage;
+    const { tool_calls, ...rest } = assistantMessage;
+    void tool_calls;
     return rest;
   }
 
@@ -886,7 +894,7 @@ export class AgentThread {
         processors = this.postToolCallContextProcessor.map(p => p.processPostToolCall.bind(p));
         break;
       default:
-        throw new Error(`Unknown hook: ${hook}`);
+        throw new Error(`Unknown hook: ${String(hook)}`);
     }
 
     const execution: Readonly<AgentThreadExecutionContext> = {
@@ -1027,10 +1035,6 @@ export class AgentThread {
       result = await llmStream.next();
     }
 
-    if (!result.value) {
-      throw Error('unreachable');
-    }
-
     // If the stream was aborted mid-way, result.value.output is only a partial
     // accumulation of the deltas — not the true complete response. Skip the
     // final model.message event to avoid emitting an inconsistent assembled message.
@@ -1039,9 +1043,7 @@ export class AgentThread {
     }
 
     // should be computed by this point but in case provider never gives out any delta with usage key, compute it now.
-    if (!usage) {
-      usage = this.computeAssistantMessageUsage({ requestBody, usage: result.value.usage, toolMapping });
-    }
+    usage ??= this.computeAssistantMessageUsage({ requestBody, usage: result.value.usage, toolMapping });
     const assistantMessage: InternalEnrichedAssistantMessage = await buildContextAssistantMessage(
       result.value.output,
       toolMapping,
@@ -1131,7 +1133,7 @@ export class AgentThread {
       sandboxCreated,
       authRequirementInfo,
       approvalRequiredToolCalls,
-      clientSideToolCalls: _clientSideToolCalls,
+      clientSideToolCalls,
       events: passthroughEvents,
     } = await executeToolCalls({
       assistantMessage: assistantForExecution,
@@ -1139,6 +1141,7 @@ export class AgentThread {
       threadId: this.threadId,
       approvalDecisions: decisions,
     });
+    void clientSideToolCalls;
     if (approvalRequiredToolCalls.length > 0) {
       throw new Error('Unreachable');
     }
@@ -1183,7 +1186,8 @@ export class AgentThread {
     }
 
     const agentToolMessages: ToolResponseEvent[] = toolCallResults.map(t => {
-      const { role: _, ...toolMessage } = t.message;
+      const { role, ...toolMessage } = t.message;
+      void role;
       return {
         ...toolMessage,
         type: EventType.TOOL_RESPONSE,
@@ -1301,8 +1305,8 @@ export class AgentThread {
       // send() / validateSendInput rejects empty or incomplete batches before execute runs.
       let currentModelMessageEventId = '';
 
-      while (true) {
-        while (true) {
+      for (;;) {
+        for (;;) {
           const sandboxCreatedEvent = this.pendingSandboxCreatedEvents.shift();
           if (sandboxCreatedEvent === undefined) break;
           yield sandboxCreatedEvent;
@@ -1316,7 +1320,7 @@ export class AgentThread {
             if (signal?.aborted) return;
             if (this._iterations >= iterationLimit) {
               yield this.generateErrorEvent(
-                `You have reached iteration limit of ${iterationLimit}, please request again`,
+                `You have reached iteration limit of ${String(iterationLimit)}, please request again`,
               );
               return;
             }

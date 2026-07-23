@@ -4,44 +4,49 @@ import { connectRemoteMcp } from '../../src/core/mcp/remoteMcpClient';
 // Records every transport type client.connect() was attempted with, in order.
 const mockConnectAttempts: string[] = [];
 // Per-test hook: throw to fail a given transport, return to succeed.
-let mockConnectImpl: (type: string) => void = () => {};
+let mockConnectImpl: (type: string) => void = () => {
+  /* no-op */
+};
+
+interface MockTransport { __type: string; sessionId?: string }
 
 jest.mock('@modelcontextprotocol/sdk/client/index.js', () => ({
   Client: class {
     onclose?: () => void;
     onerror?: (e: Error) => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    async connect(transport: any): Promise<void> {
-      const type = transport.__type as string;
+    connect(transport: MockTransport): Promise<void> {
+      const type = transport.__type;
       mockConnectAttempts.push(type);
       mockConnectImpl(type);
+      return Promise.resolve();
     }
-    async close(): Promise<void> {}
-    async listTools(): Promise<{ tools: [] }> {
-      return { tools: [] };
+    close(): Promise<void> {
+      return Promise.resolve();
     }
-    async callTool(): Promise<{ content: [] }> {
-      return { content: [] };
+    listTools(): Promise<{ tools: [] }> {
+      return Promise.resolve({ tools: [] });
+    }
+    callTool(): Promise<{ content: [] }> {
+      return Promise.resolve({ content: [] });
     }
   },
 }));
 
 jest.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
-  StreamableHTTPClientTransport: class {
-    sessionId?: string;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    constructor(_url: URL, opts?: any) {
-      this.sessionId = opts?.sessionId;
-      (this as unknown as { __type: string }).__type = 'streamable-http';
-    }
+  StreamableHTTPClientTransport: function StreamableHTTPClientTransport(
+    _url: URL,
+    opts?: { sessionId?: string },
+  ): MockTransport {
+    return {
+      __type: 'streamable-http',
+      ...(opts?.sessionId !== undefined ? { sessionId: opts.sessionId } : {}),
+    };
   },
 }));
 
 jest.mock('@modelcontextprotocol/sdk/client/sse.js', () => ({
-  SSEClientTransport: class {
-    constructor() {
-      (this as unknown as { __type: string }).__type = 'sse';
-    }
+  SSEClientTransport: function SSEClientTransport(): MockTransport {
+    return { __type: 'sse' };
   },
 }));
 
@@ -54,7 +59,9 @@ const baseParams = () => ({
 describe('connectRemoteMcp transport selection', () => {
   beforeEach(() => {
     mockConnectAttempts.length = 0;
-    mockConnectImpl = () => {};
+    mockConnectImpl = () => {
+      /* no-op */
+    };
   });
 
   it('falls back to the other transport when the known hint is stale/wrong', async () => {

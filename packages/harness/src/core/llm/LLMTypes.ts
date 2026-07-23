@@ -195,7 +195,7 @@ export interface ExtendedChatCompletionChunk extends Omit<ChatCompletionChunk, '
   /**
    * A list of chat completion choices, with thought_signature support in deltas.
    */
-  choices: Array<ExtendedChoice>;
+  choices: ExtendedChoice[];
 }
 
 export interface RawAssistantMessageWithUsage {

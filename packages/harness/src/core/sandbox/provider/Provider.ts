@@ -15,10 +15,10 @@ export type ExecResult = ExecSuccessResult | ExecErrorResult;
 /** Throws if the exec result indicates failure (infra error or non-zero exit code). */
 export function ensureExecSuccess(result: ExecResult): void {
   if (!result.success) {
-    throw new Error(`${result.error}`);
+    throw new Error(result.error);
   }
   if (result.response.exitCode !== 0) {
-    throw new Error(`(exit code ${result.response.exitCode}): ${result.response.result}`);
+    throw new Error(`(exit code ${String(result.response.exitCode)}): ${result.response.result}`);
   }
 }
 

@@ -24,10 +24,6 @@ export class AskUserQuestion extends ClientSideTool {
   readonly displayName = 'AskUserQuestion';
   override readonly tracingEnabled = false;
 
-  constructor() {
-    super();
-  }
-
   protected getTools(): ToolDefinition[] {
     return [
       defineTool({
@@ -54,12 +50,13 @@ export class AskUserQuestion extends ClientSideTool {
           'options: ["<Option A>", "<Option B>", "Other"]',
         ].join('\n'),
         schema: askUserQuestionInputSchema,
-        handler: async () => {
-          return toolResultResponse({
-            text: 'This tool requires client-side execution and cannot be run server-side.',
-            isError: true,
-          });
-        },
+        handler: () =>
+          Promise.resolve(
+            toolResultResponse({
+              text: 'This tool requires client-side execution and cannot be run server-side.',
+              isError: true,
+            }),
+          ),
       }),
     ];
   }

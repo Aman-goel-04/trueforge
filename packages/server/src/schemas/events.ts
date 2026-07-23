@@ -68,7 +68,9 @@ export const ListSessionEventsRequestQuerySchema = z
       .max(SESSION_EVENTS_LIMIT)
       .optional()
       .default(SESSION_EVENTS_LIMIT)
-      .describe(`Max events per response. Default ${SESSION_EVENTS_LIMIT}, max ${SESSION_EVENTS_LIMIT}.`),
+      .describe(
+        `Max events per response. Default ${String(SESSION_EVENTS_LIMIT)}, max ${String(SESSION_EVENTS_LIMIT)}.`,
+      ),
   })
   .openapi('ListSessionEventsRequestQuery');
 

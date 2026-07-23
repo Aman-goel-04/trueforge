@@ -48,10 +48,10 @@ export class TFYSandboxProvider implements SandboxProvider {
     this.logger = options.logger.child({ module: 'TFYSandboxProvider' });
   }
 
-  async createSandbox(): Promise<{ sandboxId: string }> {
+  createSandbox(): Promise<{ sandboxId: string }> {
     const sandboxId = `${this.tenantName}.${randomUUID()}`;
     this.logger.debug(`Sandbox created: id=${sandboxId}`);
-    return { sandboxId };
+    return Promise.resolve({ sandboxId });
   }
 
   async exec(params: {
@@ -71,7 +71,7 @@ export class TFYSandboxProvider implements SandboxProvider {
 
       const controller = new AbortController();
       const clientTimeoutMs = (this.execTimeoutSeconds + CLIENT_TIMEOUT_BUFFER_SECONDS) * 1000;
-      const timer = setTimeout(() => controller.abort(), clientTimeoutMs);
+      const timer = setTimeout(() => { controller.abort(); }, clientTimeoutMs);
 
       try {
         const response = await fetch(`${this.serverUrl}/exec`, {
@@ -83,16 +83,16 @@ export class TFYSandboxProvider implements SandboxProvider {
 
         if (!response.ok) {
           const text = await response.text();
-          this.logger.error(`Sandbox server returned ${response.status}: ${text}`);
-          return { success: false, error: `Sandbox server returned ${response.status}: ${text}` };
+          this.logger.error(`Sandbox server returned ${String(response.status)}: ${text}`);
+          return { success: false, error: `Sandbox server returned ${String(response.status)}: ${text}` };
         }
 
         const result = (await response.json()) as ExecResult;
         return result;
       } catch (e: unknown) {
         if (e instanceof Error && e.name === 'AbortError') {
-          this.logger.error(`Sandbox exec timed out after ${this.execTimeoutSeconds}s`, extractErrorLogFields(e));
-          return { success: false, error: `Sandbox exec timed out after ${this.execTimeoutSeconds}s` };
+          this.logger.error(`Sandbox exec timed out after ${String(this.execTimeoutSeconds)}s`, extractErrorLogFields(e));
+          return { success: false, error: `Sandbox exec timed out after ${String(this.execTimeoutSeconds)}s` };
         }
         this.logger.error('Sandbox exec failed', extractErrorLogFields(e));
         const message = e instanceof Error ? e.message : 'Unknown error';
@@ -148,8 +148,8 @@ export class TFYSandboxProvider implements SandboxProvider {
   }
 
   // The TFY sandbox exposes a static, cluster-internal NATS WebSocket URL (no signed URLs).
-  async getNatsBridgeUrl(_sandboxId: string): Promise<string> {
-    return this.natsBridgeUrl;
+  getNatsBridgeUrl(): Promise<string> {
+    return Promise.resolve(this.natsBridgeUrl);
   }
 
   getAdditionalInstructions(): string {

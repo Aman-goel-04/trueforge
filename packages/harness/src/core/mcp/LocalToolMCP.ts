@@ -24,7 +24,7 @@ function withValidatedInput<T extends z.ZodTypeAny>(
         isError: true,
       });
     }
-    return fn(parsed.data, approvalDecision);
+    return fn(parsed.data as z.infer<T>, approvalDecision);
   };
 }
 
@@ -37,7 +37,7 @@ type ToolInputSchema = ListToolsResult['tools'][number]['inputSchema'];
 function toJsonSchema(schema: AnyZodObject): ToolInputSchema {
   // Once we update zod see if we can remove `schema as any`
   // https://github.com/colinhacks/zod/issues/577
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- zod-to-json-schema typing lag
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument -- zod-to-json-schema typing lag
   return zodToJsonSchema(schema as any, { strictUnions: true }) as ToolInputSchema;
 }
 
@@ -86,8 +86,8 @@ export abstract class LocalToolMCP implements IToolSet {
 
   protected abstract getTools(): ToolDefinition[];
 
-  async listTools(): Promise<ListToolsResolvedResponse> {
-    return {
+  listTools(): Promise<ListToolsResolvedResponse> {
+    return Promise.resolve({
       result: {
         tools: this.getTools().map(t => ({
           name: t.name,
@@ -97,7 +97,7 @@ export abstract class LocalToolMCP implements IToolSet {
         })),
       },
       wasInitialized: undefined,
-    };
+    });
   }
 
   async callTool(params: CallToolRequest['params'], approvalDecision?: ApprovalDecision): Promise<CallToolResponse> {
@@ -119,18 +119,20 @@ export abstract class LocalToolMCP implements IToolSet {
     );
   }
 
-  // Local tools are not approval gated by default
-  async toolCallInfo(
+  // Local tools are not approval gated by default.
+  // Second arg kept for IToolSet / DeferredTool compatibility (unused here).
+  toolCallInfo(
     params: CallToolRequest['params'],
     _resolveUnderlyingTool?: boolean,
   ): Promise<InternalToolCallInfo> {
-    return {
+    void _resolveUnderlyingTool;
+    return Promise.resolve({
       type: 'truefoundry-system',
       mcp_server_id: this.mcpServerId,
       mcp_server_name: this.name,
       original_tool_name: params.name,
       is_approval_required: false,
-    };
+    });
   }
 
   private async executeTool(

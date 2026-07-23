@@ -23,7 +23,7 @@ export function makeMockILLM(overrides: Partial<ILLM> = {}): ILLM {
  */
 export function makeSilentLogger(): Logger {
   const logger = winston.createLogger({ silent: true, transports: [] });
-  logger.child = (() => logger) as Logger['child'];
+  logger.child = (() => logger);
   return logger;
 }
 
@@ -41,14 +41,15 @@ export function makeMockIMCPServer(params: {
     preload: params.preload,
     hasPreloadedTools: params.hasPreloadedTools ?? params.preload,
     listTools: jest.fn(
-      async (): Promise<ListToolsResponse> => ({
-        result: {
-          tools: params.tools ?? [
-            { name: 'tool_a', description: 'A', inputSchema: OBJECT_INPUT_SCHEMA, preload: params.preload },
-          ],
-        },
-        wasInitialized: undefined,
-      }),
+      (): Promise<ListToolsResponse> =>
+        Promise.resolve({
+          result: {
+            tools: params.tools ?? [
+              { name: 'tool_a', description: 'A', inputSchema: OBJECT_INPUT_SCHEMA, preload: params.preload },
+            ],
+          },
+          wasInitialized: undefined,
+        }),
     ),
     callTool: jest.fn(),
     toolCallInfo: jest.fn(),
@@ -81,17 +82,11 @@ export function mcpServerNamesFromTools(tools: unknown): string[] {
   if (!Array.isArray(tools)) return [];
   const names: string[] = [];
   for (const tool of tools) {
-    const description =
-      tool &&
-      typeof tool === 'object' &&
-      'function' in tool &&
-      tool.function &&
-      typeof tool.function === 'object' &&
-      'description' in tool.function &&
-      typeof tool.function.description === 'string'
-        ? tool.function.description
-        : undefined;
-    if (!description) continue;
+    if (!tool || typeof tool !== 'object' || !('function' in tool)) continue;
+    const fn = (tool as { function?: unknown }).function;
+    if (!fn || typeof fn !== 'object' || !('description' in fn)) continue;
+    const description = (fn as { description?: unknown }).description;
+    if (typeof description !== 'string') continue;
     const match = /^mcp server: ([^\n]+)/.exec(description);
     const serverName = match?.[1];
     if (serverName !== undefined && !names.includes(serverName)) {

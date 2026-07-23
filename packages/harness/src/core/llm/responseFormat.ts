@@ -32,23 +32,18 @@ type OpenAIResponseFormat = NonNullable<ChatCompletionCreateParamsStreaming['res
 
 /**
  * Maps our wire ResponseFormat into the OpenAI SDK shape for the chat.completions body.
- * Field-by-field so exactOptionalPropertyTypes stays happy without assertions.
+ * Identity-preserving: spreads the validated format (and nested json_schema) so
+ * Zod `.passthrough()` provider extensions reach the LLM unchanged.
  */
 export function toOpenAIResponseFormat(format: ResponseFormat): OpenAIResponseFormat {
-  if (format.type === 'text') {
-    return { type: 'text' };
+  if (format.type === 'text' || format.type === 'json_object') {
+    // Spread preserves Zod .passthrough() provider extensions beyond the SDK type.
+    return { ...format };
   }
-  if (format.type === 'json_object') {
-    return { type: 'json_object' };
-  }
-  const { name, description, schema, strict } = format.json_schema;
+  // Assert: OpenAI SDK json_schema type is a closed shape; Zod ResponseFormatSchema.passthrough()
+  // intentionally forwards provider extensions (top-level and nested) for the LLM call.
   return {
-    type: 'json_schema',
-    json_schema: {
-      name,
-      ...(description !== undefined ? { description } : {}),
-      ...(schema !== undefined ? { schema } : {}),
-      ...(strict !== undefined ? { strict } : {}),
-    },
-  };
+    ...format,
+    json_schema: { ...format.json_schema },
+  } as OpenAIResponseFormat;
 }

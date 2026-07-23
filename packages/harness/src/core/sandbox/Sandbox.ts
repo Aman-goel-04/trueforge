@@ -116,9 +116,9 @@ const SKILLS_PREAMBLE = [
 ].join('\n');
 
 // Per-server config sent to mcp_client.py via TFY_MCP_SERVERS.
-type SandboxMcpServerConfig = {
+interface SandboxMcpServerConfig {
   allowed_tools: string[];
-};
+}
 
 // Snapshots the active W3C trace context (`traceparent` + optional `tracestate`) into env
 // vars consumed by mcp_client.py. Read with TFY_TRACEPARENT / TFY_TRACESTATE on the sandbox
@@ -154,7 +154,7 @@ function injectMCPClientEnv(params: {
       TFY_MCP_SERVERS: Buffer.from(JSON.stringify(params.mcpServers)).toString('base64'),
     }),
     ...(params.natsBridgeSubjectPrefix && {
-      TFY_NATS_URL: `ws://localhost:${SANDBOX_NATS_WS_PORT}`,
+      TFY_NATS_URL: `ws://localhost:${String(SANDBOX_NATS_WS_PORT)}`,
       TFY_NATS_SUBJECT_PREFIX: params.natsBridgeSubjectPrefix,
       // W3C trace context captured per-exec so each NATS request carries the originating
       // Sandbox: exec span as parent. Without this, MCP spans dispatched via the bridge
@@ -459,24 +459,26 @@ export class Sandbox extends LocalToolMCP {
     if (this.existingSandboxInfo) {
       return { sandboxInfo: this.existingSandboxInfo, sandboxCreated: undefined };
     }
-    if (!this.sandboxCreationPromise) {
-      // Provider returns camelCase `{ sandboxId }`; rename to the snake_case
-      // `SandboxInfo` shape used everywhere downstream (Redis JSON, wire event,
-      // in-memory state).
-      this.sandboxCreationPromise = this.provider
-        .createSandbox()
-        .then(({ sandboxId }) => {
-          validateSandboxOwnedByTenant(sandboxId, this.tenantName);
-          return { sandbox_id: sandboxId };
-        })
-        .catch(e => {
-          this.sandboxCreationPromise = undefined;
-          throw e;
-        });
-    }
+    // Provider returns camelCase `{ sandboxId }`; rename to the snake_case
+    // `SandboxInfo` shape used everywhere downstream (Redis JSON, wire event,
+    // in-memory state).
+    this.sandboxCreationPromise ??= this.provider
+      .createSandbox()
+      .then(({ sandboxId }) => {
+        validateSandboxOwnedByTenant(sandboxId, this.tenantName);
+        return { sandbox_id: sandboxId };
+      })
+      .catch((e: unknown) => {
+        this.sandboxCreationPromise = undefined;
+        throw e;
+      });
 
     const sandboxInfo = await this.sandboxCreationPromise;
-    const isNew = !this.existingSandboxInfo;
+    // Concurrent callers may both await the same creation promise; only the first
+    // should report sandboxCreated. Read via a local to avoid control-flow narrowing
+    // that treats existingSandboxInfo as always undefined after the early return above.
+    const prior = this.existingSandboxInfo as SandboxInfo | undefined;
+    const isNew = prior === undefined;
     this.existingSandboxInfo = sandboxInfo;
     return { sandboxInfo, sandboxCreated: isNew ? sandboxInfo : undefined };
   }
@@ -584,12 +586,10 @@ export class Sandbox extends LocalToolMCP {
    * The sandbox filesystem is persistent within a session, so this only needs to run once.
    */
   private async ensureSandboxInitialized(): Promise<void> {
-    if (!this.sandboxInitPromise) {
-      this.sandboxInitPromise = this.initSandboxEnvironment().catch(e => {
-        this.sandboxInitPromise = undefined;
-        throw e;
-      });
-    }
+    this.sandboxInitPromise ??= this.initSandboxEnvironment().catch((e: unknown) => {
+      this.sandboxInitPromise = undefined;
+      throw e;
+    });
     await this.sandboxInitPromise;
   }
 
@@ -633,7 +633,7 @@ export class Sandbox extends LocalToolMCP {
     this.logger.info(
       `Sandbox initialized: MCP client at ${MCP_CLIENT_PATH} (symlinked to ${MCP_CLIENT_BIN_SYMLINK}); ` +
         `skill downloader at ${SKILL_DOWNLOADER_PATH}; skills dir ${SKILLS_DIR}` +
-        `; ran skill downloader with ${fqnCount} FQN(s) input`,
+        `; ran skill downloader with ${String(fqnCount)} FQN(s) input`,
     );
     await this.writeGitCredentials();
   }
@@ -647,18 +647,16 @@ export class Sandbox extends LocalToolMCP {
   private async ensureNatsBridgeConnected(sandboxId: string): Promise<SandboxNatsBridge | undefined> {
     // No MCP servers means the bridge has nothing to dispatch to. Avoid the connect cost.
     if (this.codeExecToolSets.length === 0) return undefined;
-    if (!this.natsBridgePromise) {
-      this.natsBridgePromise = this.connectNatsBridge(sandboxId).catch(e => {
-        // Connect-level errors (network, timeout, broker not up) are not sticky: a later exec
-        // may succeed (e.g. after sandbox warmup). Wipe the cached promise so retries happen.
-        this.logger.error('Sandbox NATS bridge connect failed', {
-          ...extractErrorLogFields(e),
-          sandboxId,
-        });
-        this.natsBridgePromise = undefined;
-        return undefined;
+    this.natsBridgePromise ??= this.connectNatsBridge(sandboxId).catch((e: unknown) => {
+      // Connect-level errors (network, timeout, broker not up) are not sticky: a later exec
+      // may succeed (e.g. after sandbox warmup). Wipe the cached promise so retries happen.
+      this.logger.error('Sandbox NATS bridge connect failed', {
+        ...extractErrorLogFields(e),
+        sandboxId,
       });
-    }
+      this.natsBridgePromise = undefined;
+      return undefined;
+    });
     return this.natsBridgePromise;
   }
 

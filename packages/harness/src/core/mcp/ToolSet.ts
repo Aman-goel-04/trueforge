@@ -104,7 +104,7 @@ export class ToolSet implements IToolSet {
   }
 
   private async assertToolAllowed(toolName: string, annotations: ToolAnnotations | undefined): Promise<void> {
-    const allowed = await this.policy.isAllowed(toolName, async () => annotations);
+    const allowed = await this.policy.isAllowed(toolName, () => Promise.resolve(annotations));
     if (!allowed) {
       throw new McpConnectionError(`Tool '${toolName}' is not allowed on MCP server ${this.name}`, 403);
     }

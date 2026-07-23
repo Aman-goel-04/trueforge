@@ -47,11 +47,11 @@ const callToolSchema = z.object({
   input: z.record(z.string(), z.unknown()).default({}).describe('Arguments to pass to the tool.'),
 });
 
-type ResolvedServerTools = {
+interface ResolvedServerTools {
   server: IToolSet;
   tools: AgentToolSchema[];
   metadata: Omit<ListToolsResolvedResponse, 'result'>;
-};
+}
 
 function isResolvedServerTools(result: CallToolResponse | ResolvedServerTools): result is ResolvedServerTools {
   return 'tools' in result;

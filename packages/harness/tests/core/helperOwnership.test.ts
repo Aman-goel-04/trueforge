@@ -46,11 +46,11 @@ describe('canonical helper ownership fidelity', () => {
   it('enforces tool-name collision limit 50', () => {
     const existing = new Set<string>();
     existing.add('tool');
-    for (let i = 1; i <= MAX_DUP_SUFFIX; i++) existing.add(`tool${i}`);
+    for (let i = 1; i <= MAX_DUP_SUFFIX; i++) existing.add(`tool${String(i)}`);
     expect(MAX_DUP_SUFFIX).toBe(50);
     expect(() => getUniqueSanitizedToolName('tool', existing)).toThrow(ToolNameCollisionError);
     expect(() => getUniqueSanitizedToolName('tool', existing)).toThrow(
-      `Tool name collision limit exceeded for "tool": more than ${MAX_DUP_SUFFIX} duplicates across MCP servers`,
+      `Tool name collision limit exceeded for "tool": more than ${String(MAX_DUP_SUFFIX)} duplicates across MCP servers`,
     );
   });
 });

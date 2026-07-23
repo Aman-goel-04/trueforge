@@ -1,4 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+// SSE remains required during the Streamable HTTP migration (some servers still speak SSE only).
+ 
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import type { CallToolRequest, CallToolResult } from '@modelcontextprotocol/sdk/types.js';
@@ -20,6 +22,8 @@ export interface RemoteMcpConnection {
   close(): Promise<void>;
 }
 
+// SSE transport type kept for dual-probe support during migration.
+// eslint-disable-next-line @typescript-eslint/no-deprecated -- see TRANSPORT_PROBE_ORDER
 type McpTransport = StreamableHTTPClientTransport | SSEClientTransport;
 
 const CLIENT_INFO = { name: 'tfy-agent-mcp-client', version: '1.0.0' } as const;
@@ -33,8 +37,10 @@ class McpClientWithTimeout extends Client {
     super(CLIENT_INFO, { capabilities: {} });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // SDK Client.request is loosely typed; forward with an explicit timeout.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- MCP SDK request typing
   override request(req: any, schema: any, options?: any): Promise<any> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- MCP SDK request typing
     return super.request(req, schema, { ...options, timeout: REQUEST_TIMEOUT_MS });
   }
 }
@@ -49,6 +55,7 @@ function createTransport(
   if (type === 'streamable-http') {
     return new StreamableHTTPClientTransport(url, { requestInit, ...(sessionId !== undefined ? { sessionId } : {}) });
   }
+  // eslint-disable-next-line @typescript-eslint/no-deprecated -- dual-transport probe; see TRANSPORT_PROBE_ORDER
   return new SSEClientTransport(url, { requestInit });
 }
 
@@ -104,7 +111,9 @@ function buildConnection(
       return (await client.callTool(callParams, undefined, requestOptions)) as CallToolResult;
     },
     close: async (): Promise<void> => {
-      await client.close().catch(() => {});
+      await client.close().catch(() => {
+        /* no-op */
+      });
     },
   };
 }
@@ -124,8 +133,8 @@ export async function connectRemoteMcp(params: {
   knownTransportType?: RemoteMcpTransportType | undefined;
   connectTimeoutMs?: number | undefined;
   signal: AbortSignal;
-  onClose?: () => void | undefined;
-  onError?: (error: Error) => void | undefined;
+  onClose?: (() => void) | undefined;
+  onError?: ((error: Error) => void) | undefined;
 }): Promise<RemoteMcpConnection> {
   const url = new URL(params.url);
   const requestOptions = { signal: params.signal };
@@ -139,14 +148,17 @@ export async function connectRemoteMcp(params: {
     const client = new McpClientWithTimeout();
     try {
       stampTraceHeaders(params.headers);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- exactOptionalPropertyTypes mismatch between SDK Transport interface and StreamableHTTPClientTransport.sessionId
       await withTimeout(
-        client.connect(transport as any, requestOptions),
+        // Concrete transports use sessionId: string|undefined; Transport uses an optional
+        // property — exactOptionalPropertyTypes rejects assignability without this cast.
+        client.connect(transport as Parameters<Client['connect']>[0], requestOptions),
         params.connectTimeoutMs ?? CONNECT_TIMEOUT_MS,
         transportType,
       );
     } catch (error) {
-      await client.close().catch(() => {});
+      await client.close().catch(() => {
+        /* no-op */
+      });
       if (isAuthError(error)) throw toConnectError(error);
       // A session-expired error means the transport is right but the session is stale: surface it so
       // the caller reconnects fresh instead of falling through to a different transport.

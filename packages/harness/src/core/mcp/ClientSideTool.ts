@@ -9,7 +9,9 @@ import { LocalToolMCP } from './LocalToolMCP';
 // transitions to `user-input-required` before callTool() is ever reached.
 // The callTool() override exists only as a safety net for impossible states.
 export abstract class ClientSideTool extends LocalToolMCP {
-  protected constructor() {
+  // Public so concrete subclasses (AskUserQuestion, …) remain constructable from
+  // factories; abstract class still cannot be instantiated directly.
+  constructor() {
     super({ tracing: NOOP_AGENT_TRACING });
   }
 
@@ -21,16 +23,17 @@ export abstract class ClientSideTool extends LocalToolMCP {
     };
   }
 
-  override async toolCallInfo(
+  override toolCallInfo(
     params: CallToolRequest['params'],
     _resolveUnderlyingTool?: boolean,
   ): Promise<InternalToolCallInfo> {
-    return {
+    void _resolveUnderlyingTool;
+    return Promise.resolve({
       type: 'truefoundry-system',
       original_tool_name: params.name,
       mcp_server_id: this.mcpServerId,
       mcp_server_name: this.name,
       is_client_side: true,
-    };
+    });
   }
 }

@@ -117,8 +117,8 @@ export function createSessionsRouter(deps: SessionsRouterDeps) {
       const { data, pagination } = await deps.sessionStore.listSessions({
         tenant_name: TENANT_NAME,
         limit: query.limit,
+        order: query.order,
         ...(query.page_token !== undefined ? { page_token: query.page_token } : {}),
-        ...(query.order !== undefined ? { order: query.order } : {}),
         ...(query.start_timestamp !== undefined ? { start_timestamp: query.start_timestamp } : {}),
         ...(query.end_timestamp !== undefined ? { end_timestamp: query.end_timestamp } : {}),
       });

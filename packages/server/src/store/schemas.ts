@@ -7,7 +7,7 @@ import { z } from 'zod';
 import { normalizeEnvName } from '../config/config';
 
 /** Adds a validation issue if two entries share a name. */
-function uniqueNames(entries: Array<{ name: string }>, ctx: z.RefinementCtx): void {
+function uniqueNames(entries: { name: string }[], ctx: z.RefinementCtx): void {
   const seen = new Set<string>();
   for (const entry of entries) {
     if (seen.has(entry.name)) {
@@ -26,7 +26,7 @@ function uniqueNames(entries: Array<{ name: string }>, ctx: z.RefinementCtx): vo
  * not be given separate per-name overrides (headers, API keys). Only applied
  * to entries with per-name env vars (models, MCP servers).
  */
-function uniqueEnvNames(entries: Array<{ name: string }>, ctx: z.RefinementCtx): void {
+function uniqueEnvNames(entries: { name: string }[], ctx: z.RefinementCtx): void {
   const seenByEnvName = new Map<string, string>();
   for (const entry of entries) {
     const envName = normalizeEnvName(entry.name);
@@ -100,7 +100,7 @@ export const SkillsFileSchema = z
     skills: z.array(SkillEntrySchema),
   })
   .strict()
-  .superRefine((file, ctx) => uniqueNames(file.skills, ctx));
+  .superRefine((file, ctx) => { uniqueNames(file.skills, ctx); });
 
 export type ModelEntry = z.infer<typeof ModelEntrySchema>;
 export type McpServerEntry = z.infer<typeof McpServerEntrySchema>;

@@ -25,7 +25,7 @@ import type { ISessionStore } from './store/ISessionStore';
 import { TurnHandle } from './TurnHandle';
 
 function resolvePreviousTurnId(
-  requested: 'auto' | string | null | undefined,
+  requested: string | null | undefined,
   lastTurnId: string | undefined,
 ): string | undefined {
   if (requested === null) {
@@ -116,7 +116,7 @@ export class SessionHandle<
   async run(input: {
     input?: TurnInputItem[] | undefined;
     /** 'auto'/omitted → session.last_turn_id; null → new root; id → fork from that turn. */
-    previous_turn_id?: 'auto' | string | null | undefined;
+    previous_turn_id?: string | null | undefined;
     signal: AbortSignal;
     resolver: ITurnResourceResolver<TTurnCustom>;
     /** Value = stored as-is. Fn = merge over previous turn's custom. Omitted = undefined. */
@@ -180,8 +180,8 @@ export class SessionHandle<
 
       // SEND BEFORE COMMIT — validate + append; throw ⇒ nothing persisted.
       const sendBatch = toSendBatch(input.input);
-      for await (const _ of orchestrator.send(sendBatch)) {
-        // drain only
+      for await (const event of orchestrator.send(sendBatch)) {
+        void event; // drain only
       }
 
       const turnId = ulid().toLowerCase();
@@ -228,7 +228,7 @@ export class SessionHandle<
         signal: input.signal,
       });
     } catch (error) {
-      await input.resolver.close().catch(closeError => {
+      await input.resolver.close().catch((closeError: unknown) => {
         input.resolver.logger.warn('TurnResourceResolver.close() failed after run() error', {
           err: closeError,
         });
@@ -273,7 +273,7 @@ export class SessionHandle<
    * nothing is synthesized on read.
    */
   async listEvents(input: { limit: number; page_token?: string; last_turn_id?: string }): Promise<{
-    data: Array<{ turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }>;
+    data: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[];
     pagination: TokenPagination;
   }> {
     return this.store.listSessionEvents({

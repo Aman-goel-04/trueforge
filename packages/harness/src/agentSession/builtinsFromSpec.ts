@@ -27,8 +27,8 @@ export function builtinsFromSpec(input: {
   const config = spec.config;
   const capabilities: AgentCapability[] = [currentDateTime({ tracing })];
 
-  const compaction = config?.context_management?.compaction;
-  if (!compaction || compaction.enabled !== false) {
+  const compaction = config?.context_management.compaction;
+  if (!compaction || compaction.enabled) {
     capabilities.push(
       contextCompaction({
         definition,
@@ -42,7 +42,7 @@ export function builtinsFromSpec(input: {
   }
 
   const dynamicSubAgentsEnabled =
-    config?.dynamic_sub_agents === undefined || config.dynamic_sub_agents.enabled !== false;
+    config?.dynamic_sub_agents === undefined || config.dynamic_sub_agents.enabled;
   if (!isChild && dynamicSubAgentsEnabled) {
     capabilities.push(
       dynamicSubAgents({
@@ -52,8 +52,8 @@ export function builtinsFromSpec(input: {
     );
   }
 
-  const large = config?.context_management?.large_tool_response;
-  if (!large || large.enabled !== false) {
+  const large = config?.context_management.large_tool_response;
+  if (!large || large.enabled) {
     capabilities.push(
       largeToolResponse({
         dynamicSubAgentsPresent: !isChild && dynamicSubAgentsEnabled,

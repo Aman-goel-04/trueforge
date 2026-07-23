@@ -52,6 +52,7 @@ export function makeAgentSpec(
   });
 }
 
+// eslint-disable-next-line @typescript-eslint/require-await -- async generator fixture, not awaiting I/O
 export async function* emptyLlmStream(): AsyncGenerator<
   ExtendedChatCompletionChunk,
   RawAssistantMessageWithUsage,
@@ -63,7 +64,7 @@ export async function* emptyLlmStream(): AsyncGenerator<
     created: 0,
     model: 'test-model',
     choices: [{ index: 0, delta: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
-  } as ExtendedChatCompletionChunk;
+  };
   return {
     output: { role: 'assistant', content: 'ok' },
     usage: getEmptyUsage(),
@@ -81,17 +82,17 @@ export function makeTestResolver<TTurnCustom extends object = Record<string, nev
   });
   const base = new TurnResourceResolver<TTurnCustom>({
     llm: () => llm,
-    mcp: async name => {
-      throw new Error(`unexpected mcp lookup: ${name}`);
+    mcp: name => {
+      return Promise.reject(new Error(`unexpected mcp lookup: ${name}`));
     },
     logger: makeSilentLogger(),
     ...(options?.sandbox
       ? {
-          sandboxProvider: async () => {
+          sandboxProvider: () => {
             if (!options.sandbox) {
-              throw new Error('sandbox missing');
+              return Promise.reject(new Error('sandbox missing'));
             }
-            return options.sandbox;
+            return Promise.resolve(options.sandbox);
           },
         }
       : {}),
@@ -111,11 +112,14 @@ export function makeTestResolver<TTurnCustom extends object = Record<string, nev
       const resolved = await base.resolveAgentDefinition(input);
       return {
         ...resolved,
-        extraCapabilities: [...(resolved.extraCapabilities ?? []), ...(options?.extraCapabilities ?? [])],
+        extraCapabilities: [
+          ...(resolved.extraCapabilities ?? []),
+          ...(options.extraCapabilities ?? []),
+        ],
       };
     },
     close: async () => {
-      if (options?.close) {
+      if (options.close) {
         await options.close();
       }
       await base.close();

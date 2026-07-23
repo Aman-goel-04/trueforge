@@ -56,13 +56,13 @@ export class LargeToolResponseProcessor implements ToolResponseProcessor {
   }) {
     if (param.individualTokenThreshold > param.totalTokenThreshold) {
       throw new Error(
-        `individualTokenThreshold (${param.individualTokenThreshold}) must be <= totalTokenThreshold (${param.totalTokenThreshold})`,
+        `individualTokenThreshold (${String(param.individualTokenThreshold)}) must be <= totalTokenThreshold (${String(param.totalTokenThreshold)})`,
       );
     }
     this.dynamicSubAgentsPresent = param.dynamicSubAgentsPresent;
     this.individualTokenThreshold = param.individualTokenThreshold;
     this.totalTokenThreshold = param.totalTokenThreshold;
-    this.previewNumberOfCharacters = param.previewNumberOfCharacters ?? DEFAULT_PREVIEW_NUMBER_OF_CHARACTERS;
+    this.previewNumberOfCharacters = param.previewNumberOfCharacters;
     this.logger = param.logger.child({ module: 'LargeToolResponse' });
   }
 
@@ -78,7 +78,7 @@ export class LargeToolResponseProcessor implements ToolResponseProcessor {
     }
 
     return `Content too big. To handle a large tool call the Agent can do the following:\n${steps
-      .map((step, index) => `${index + 1}. ${step}`)
+      .map((step, index) => `${String(index + 1)}. ${step}`)
       .join('\n')}`;
   }
 
@@ -96,10 +96,10 @@ export class LargeToolResponseProcessor implements ToolResponseProcessor {
     }
 
     const guidance = `The Agent can do the following to handle it:\n${steps
-      .map((step, index) => `${index + 1}. ${step}`)
+      .map((step, index) => `${String(index + 1)}. ${step}`)
       .join('\n')}`;
 
-    return `Content too large. Result saved to: ${filePath}.\n\n${guidance}\n\nPreview (first and last ${this.previewNumberOfCharacters} chars):\n${preview}`;
+    return `Content too large. Result saved to: ${filePath}.\n\n${guidance}\n\nPreview (first and last ${String(this.previewNumberOfCharacters)} chars):\n${preview}`;
   }
 
   private buildResultsWithInfo(results: ToolCallResult[], sandbox: Sandbox | undefined): ToolResultWithInfo[] {
@@ -127,7 +127,7 @@ export class LargeToolResponseProcessor implements ToolResponseProcessor {
         newContent = `Content too big. The Agent should write to a file if required and use grep and sed.\n\nPreview:\n${preview}`;
         break;
       case 'mcp':
-        newContent = `${this.createLargeToolResponseGuidance(sandbox)}\n\nPreview (first and last ${this.previewNumberOfCharacters} chars):\n${preview}`;
+        newContent = `${this.createLargeToolResponseGuidance(sandbox)}\n\nPreview (first and last ${String(this.previewNumberOfCharacters)} chars):\n${preview}`;
         if (sandbox) {
           pendingSandboxDumps.push(entry);
         }
@@ -149,7 +149,7 @@ export class LargeToolResponseProcessor implements ToolResponseProcessor {
     }
     const sanitizedName = entry.toolCallResult.info.originalToolName.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
     const epoch = Date.now();
-    const fileName = `${sanitizedName}_${index}_${epoch}.txt`;
+    const fileName = `${sanitizedName}_${String(index)}_${String(epoch)}.txt`;
     try {
       const stored = await sandbox.writeArtifact({
         fileName,

@@ -14,8 +14,9 @@ import { NOOP_AGENT_TRACING } from '../../src/core/tracing/NoopAgentTracing';
 // RemoteMCP connects itself via connectRemoteMcp; mock it so the split RemoteMCP (connection) +
 // ToolSet (policy) can be exercised without real networking. isSessionExpiredError stays real.
 jest.mock('../../src/core/mcp/remoteMcpClient', () => {
-  const actual = jest.requireActual('../../src/core/mcp/remoteMcpClient');
-  return { __esModule: true, ...actual, connectRemoteMcp: jest.fn() };
+  const actualUnknown: unknown = jest.requireActual('../../src/core/mcp/remoteMcpClient');
+  const actual = actualUnknown as typeof import('../../src/core/mcp/remoteMcpClient');
+  return { __esModule: true as const, ...actual, connectRemoteMcp: jest.fn() };
 });
 
 const mockConnect = connectRemoteMcp as jest.MockedFunction<typeof connectRemoteMcp>;
@@ -26,12 +27,12 @@ const READ_TOOL: ToolSchema = {
   name: 'read_thing',
   inputSchema: { type: 'object' },
   annotations: { readOnlyHint: true },
-} as ToolSchema;
+};
 const WRITE_TOOL: ToolSchema = {
   name: 'write_thing',
   inputSchema: { type: 'object' },
   annotations: { readOnlyHint: false },
-} as ToolSchema;
+};
 
 const DEFAULT_SELECTORS: ToolSelectorConfig = {
   enableTools: ['@all'],
@@ -49,6 +50,10 @@ interface FakeConnectionState {
   queueCallToolError(error: unknown): void;
 }
 
+function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error('unknown error');
+}
+
 function installFakeConnection(
   opts: { tools?: ToolSchema[]; sessionId?: string | null; connectError?: unknown } = {},
 ): FakeConnectionState {
@@ -60,23 +65,28 @@ function installFakeConnection(
     queueCallToolError: (error: unknown) => callToolErrors.push(error),
   };
 
-  mockConnect.mockImplementation(async () => {
+  mockConnect.mockImplementation(() => {
     state.connectCalls += 1;
-    if (opts.connectError) throw opts.connectError;
-    return {
-      transportType: 'streamable-http',
+    if (opts.connectError) {
+      return Promise.reject(toError(opts.connectError));
+    }
+    return Promise.resolve({
+      transportType: 'streamable-http' as const,
       sessionId: opts.sessionId ?? null,
-      listTools: async () => ({ tools: opts.tools ?? [READ_TOOL, WRITE_TOOL] }),
-      callTool: async callParams => {
+      listTools: () => Promise.resolve({ tools: opts.tools ?? [READ_TOOL, WRITE_TOOL] }),
+      callTool: callParams => {
         state.callToolCalls += 1;
         const queued = callToolErrors.shift();
-        if (queued) throw queued;
-        return { content: [{ type: 'text', text: `called ${callParams.name}` }] };
+        if (queued) {
+          return Promise.reject(toError(queued));
+        }
+        return Promise.resolve({ content: [{ type: 'text', text: `called ${callParams.name}` }] });
       },
-      close: async () => {
+      close: () => {
         state.closes += 1;
+        return Promise.resolve();
       },
-    };
+    });
   });
 
   return state;
@@ -142,7 +152,9 @@ describe('RemoteMCP + ToolSet', () => {
     const server = makeServer({ sessionId: 'sess-1' });
 
     await server.listTools();
-    expect(mockConnect.mock.calls[0]![0]).not.toHaveProperty('knownTransportType');
+    const firstCall = mockConnect.mock.calls[0];
+    expect(firstCall).toBeDefined();
+    expect(firstCall?.[0]).not.toHaveProperty('knownTransportType');
   });
 
   it('applies enable/disable selectors and preload annotation', async () => {
@@ -249,22 +261,28 @@ describe('RemoteMCP + ToolSet', () => {
   it('wraps a non-auth connect failure in a server-named McpConnectionError preserving the status hint', async () => {
     installFakeConnection({ connectError: new McpConnectionError('upstream down', 502) });
     const server = makeServer({});
-    await expect(server.listTools()).rejects.toMatchObject({
-      constructor: McpConnectionError,
-      statusCode: 502,
-      message: expect.stringContaining("remote MCP server 'my-inline'"),
-    });
+    try {
+      await server.listTools();
+      throw new Error('expected listTools to reject');
+    } catch (err) {
+      expect(err).toBeInstanceOf(McpConnectionError);
+      expect(err).toMatchObject({ statusCode: 502 });
+      expect((err as McpConnectionError).message).toContain("remote MCP server 'my-inline'");
+    }
   });
 
   it('wraps a 401 on connect as a server-named McpConnectionError (inline never enters auth-required)', async () => {
     const state = installFakeConnection({ connectError: new McpConnectionError('upstream 401', 401) });
     const server = makeServer({});
 
-    await expect(server.listTools()).rejects.toMatchObject({
-      constructor: McpConnectionError,
-      statusCode: 401,
-      message: expect.stringContaining("remote MCP server 'my-inline'"),
-    });
+    try {
+      await server.listTools();
+      throw new Error('expected listTools to reject');
+    } catch (err) {
+      expect(err).toBeInstanceOf(McpConnectionError);
+      expect(err).toMatchObject({ statusCode: 401 });
+      expect((err as McpConnectionError).message).toContain("remote MCP server 'my-inline'");
+    }
     expect(state.connectCalls).toBe(1);
   });
 
@@ -273,7 +291,7 @@ describe('RemoteMCP + ToolSet', () => {
     const authRequired: MCPAuthRequired = {
       servers: [{ id: 'inline-id-123', name: 'my-inline', auth_url: 'https://auth.example' }],
     };
-    const headers: RemoteMcpHeaders = async () => ({ authRequired });
+    const headers: RemoteMcpHeaders = () => Promise.resolve({ authRequired });
     const server = makeServer({
       headers,
       selectors: { enableTools: ['@read-only'], disableTools: [], preloadTools: [] },

@@ -35,7 +35,7 @@ export class SandboxFileTooLargeError extends SandboxError {
   readonly maxSize: number;
 
   constructor(path: string, fileSize: number, maxSize: number) {
-    super(`File too large: ${path} (${fileSize} bytes, max ${maxSize})`);
+    super(`File too large: ${path} (${String(fileSize)} bytes, max ${String(maxSize)})`);
     this.name = 'SandboxFileTooLargeError';
     this.fileSize = fileSize;
     this.maxSize = maxSize;

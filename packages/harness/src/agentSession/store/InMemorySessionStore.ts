@@ -1,5 +1,5 @@
 import type { MCPServerInitInfo, ThreadOverwriteContextEvent } from '../../core/events/eventSchemas';
-import type { RegisteredPassthroughEvent } from '../../core/events/PassthroughEvents';
+import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
 import type { CompletionUsage } from '../../core/llm/LLMTypes';
 import type {
   AgentThreadSnapshot,
@@ -16,7 +16,9 @@ import type { TerminalTurnState } from '../schemas/turn';
 import type { ISessionStore } from './ISessionStore';
 import { SessionStoreConflictError, SessionStoreNotFoundError } from './SessionStoreErrors';
 
-type StoredEvent = TurnEvent | TurnCreatedEvent | TurnDoneEvent | RegisteredPassthroughEvent;
+/* eslint-disable @typescript-eslint/require-await -- in-memory store is synchronous; methods stay async so thrown SessionStore*Error reject as Promises for ISessionStore callers */
+
+type StoredEvent = WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>;
 
 interface StoredSession<TSessionCustom extends object> {
   record: SessionRecord<TSessionCustom>;
@@ -114,6 +116,7 @@ export class InMemorySessionStore<
       ...(input.custom !== undefined ? { custom: deepCopy(input.custom) } : {}),
     };
     this.sessions.set(key, { record, turnIds: [] });
+    return;
   }
 
   async getSession(input: {
@@ -143,6 +146,7 @@ export class InMemorySessionStore<
     }
     stored.record.updated_at = new Date().toISOString();
     stored.record.last_activity_timestamp_ms = Date.now();
+    return;
   }
 
   async listSessions(input: {
@@ -262,7 +266,7 @@ export class InMemorySessionStore<
     tenant_name: string;
     session_id: string;
     turn_id: string;
-    events: Array<TurnEvent | TurnCreatedEvent | TurnDoneEvent | RegisteredPassthroughEvent>;
+    events: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
   }): Promise<void> {
     const tKey = turnKey(input.tenant_name, input.session_id, input.turn_id);
     const list = this.events.get(tKey);
@@ -270,6 +274,7 @@ export class InMemorySessionStore<
       throw new SessionStoreNotFoundError(`Turn not found: ${input.turn_id}`);
     }
     list.push(...deepCopy(input.events));
+    return;
   }
 
   private requireTurn(tenant: string, sessionId: string, turnId: string): TurnRecord<TTurnCustom> {
@@ -291,6 +296,7 @@ export class InMemorySessionStore<
       turn.snapshot.threads[thread.thread_id] = deepCopy(thread);
     }
     turn.updated_at = new Date().toISOString();
+    return;
   }
 
   async removeThreads(input: {
@@ -301,9 +307,10 @@ export class InMemorySessionStore<
   }): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     for (const id of input.thread_ids) {
-      delete turn.snapshot.threads[id];
+      Reflect.deleteProperty(turn.snapshot.threads, id);
     }
     turn.updated_at = new Date().toISOString();
+    return;
   }
 
   async appendToThreadContext(input: {
@@ -328,6 +335,7 @@ export class InMemorySessionStore<
       thread.completion = deepCopy(input.completion);
     }
     turn.updated_at = new Date().toISOString();
+    return;
   }
 
   async overwriteThreadContext(input: {
@@ -343,10 +351,9 @@ export class InMemorySessionStore<
       throw new SessionStoreNotFoundError(`Thread not found: ${threadId}`);
     }
     thread.context = deepCopy(input.event.context);
-    if (input.event.current_context_usage !== undefined) {
-      thread.current_context_usage = deepCopy(input.event.current_context_usage);
-    }
+    thread.current_context_usage = deepCopy(input.event.current_context_usage);
     turn.updated_at = new Date().toISOString();
+    return;
   }
 
   async patchMCPServers(input: {
@@ -356,13 +363,12 @@ export class InMemorySessionStore<
     mcp_servers: MCPServerInitInfo[];
   }): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
-    if (!turn.snapshot.mcp_servers) {
-      turn.snapshot.mcp_servers = {};
-    }
+    turn.snapshot.mcp_servers ??= {};
     for (const server of input.mcp_servers) {
       turn.snapshot.mcp_servers[server.id] = deepCopy(server);
     }
     turn.updated_at = new Date().toISOString();
+    return;
   }
 
   async patchSandboxInfo(input: {
@@ -374,6 +380,7 @@ export class InMemorySessionStore<
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     turn.snapshot.sandbox_info = deepCopy(input.sandbox_info);
     turn.updated_at = new Date().toISOString();
+    return;
   }
 
   async patchThreadCapabilityState(input: {
@@ -389,11 +396,10 @@ export class InMemorySessionStore<
     if (!thread) {
       throw new SessionStoreNotFoundError(`Thread not found: ${input.thread_id}`);
     }
-    if (!thread.capability_state) {
-      thread.capability_state = {};
-    }
+    thread.capability_state ??= {};
     thread.capability_state[input.key] = deepCopy(input.state);
     turn.updated_at = new Date().toISOString();
+    return;
   }
 
   async listTurnEvents(input: {
@@ -404,7 +410,7 @@ export class InMemorySessionStore<
     page_token?: string | undefined;
     order?: 'asc' | 'desc' | undefined;
   }): Promise<{
-    data: Array<TurnEvent | TurnCreatedEvent | TurnDoneEvent | RegisteredPassthroughEvent>;
+    data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
     pagination: TokenPagination;
   }> {
     const list = this.events.get(turnKey(input.tenant_name, input.session_id, input.turn_id));
@@ -423,7 +429,7 @@ export class InMemorySessionStore<
     page_token?: string | undefined;
     last_turn_id?: string | undefined;
   }): Promise<{
-    data: Array<{ turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }>;
+    data: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[];
     pagination: TokenPagination;
   }> {
     const stored = this.sessions.get(sessionKey(input.tenant_name, input.session_id));
@@ -438,7 +444,7 @@ export class InMemorySessionStore<
       }
       turnIds = [...anchor.ancestor_ids, anchor.turn_id];
     }
-    const flattened: Array<{ turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }> = [];
+    const flattened: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[] = [];
     for (const turnId of turnIds) {
       const evts = this.events.get(turnKey(input.tenant_name, input.session_id, turnId)) ?? [];
       for (const event of evts) {

@@ -26,7 +26,7 @@ export interface OpenAILLMConfig {
   signal?: AbortSignal | undefined;
   /** Response header carrying the served model's context length, if the API exposes one. */
   servedContextLengthHeader?: string | undefined;
-  onServedModelContextLength?: (contextLength: number) => void | undefined;
+  onServedModelContextLength?: ((contextLength: number) => void) | undefined;
 }
 
 /** ILLM implementation for any OpenAI-compatible chat completions API. */
@@ -97,9 +97,7 @@ export class OpenAILLM implements ILLM {
     }
 
     return {
-      usage: newMessage.usage
-        ? newMessage.usage
-        : estimateTokensForAssistantMessage(body, newMessage.output, this.logger),
+      usage: newMessage.usage ?? estimateTokensForAssistantMessage(body, newMessage.output, this.logger),
       output: newMessage.output,
       finish_reason: newMessage.finish_reason ?? null,
     };
@@ -113,11 +111,7 @@ export class OpenAILLM implements ILLM {
       result = await llmStream.next();
     }
 
-    if (result.value) {
-      return result.value;
-    } else {
-      throw Error('unreachable');
-    }
+    return result.value;
   }
 }
 
@@ -142,24 +136,23 @@ function accumulateTokensFromChunk(
   logger: Logger,
 ): void {
   for (const choice of chunk.choices) {
-    // Initialize message if it doesn't exist and get reference
+    const delta = choice.delta;
     // Validate role only if it's explicitly present (typically only in first chunk)
     // Most chunks won't have role in delta, which is normal
-    if (choice.delta?.role !== undefined && choice.delta?.role !== 'assistant') {
-      logger.warn(`Unexpected role: ${choice.delta?.role}`);
-      throw Error(`Unexpected role: ${choice.delta?.role}`);
+    if (delta.role !== undefined && delta.role !== 'assistant') {
+      logger.warn(`Unexpected role: ${delta.role}`);
+      throw Error(`Unexpected role: ${delta.role}`);
     }
 
-    if (choice.delta?.content) {
-      message.output.content = message.output.content + choice.delta.content;
+    if (delta.content) {
+      const existing = typeof message.output.content === 'string' ? message.output.content : '';
+      message.output.content = existing + delta.content;
     }
     // ToDo (handle refusal in the message, currently not handled)
 
-    if (choice.delta?.thinking_blocks) {
-      if (!message.output.thinking_blocks) {
-        message.output.thinking_blocks = [];
-      }
-      for (const tb of choice.delta.thinking_blocks) {
+    if (delta.thinking_blocks) {
+      message.output.thinking_blocks ??= [];
+      for (const tb of delta.thinking_blocks) {
         if (tb.type === 'thinking') {
           const blocks = message.output.thinking_blocks;
           const last = blocks[blocks.length - 1];
@@ -178,29 +171,28 @@ function accumulateTokensFromChunk(
           if (tb.signature) {
             current.signature = tb.signature;
           }
-        } else if (tb.type === 'redacted_thinking') {
+        } else {
+          // redacted_thinking
           message.output.thinking_blocks.push(tb);
         }
       }
     }
 
-    if (choice.delta?.tool_calls) {
-      if (!message.output.tool_calls) {
-        message.output.tool_calls = [];
-      }
+    if (delta.tool_calls) {
+      message.output.tool_calls ??= [];
 
-      for (const toolCallDelta of choice.delta.tool_calls) {
+      for (const toolCallDelta of delta.tool_calls) {
         const toolCallIndex = toolCallDelta.index;
         const functionDelta = toolCallDelta.function;
 
         // Initialize tool call if it doesn't exist
         if (!message.output.tool_calls[toolCallIndex]) {
           message.output.tool_calls[toolCallIndex] = {
-            id: toolCallDelta.id || '',
+            id: toolCallDelta.id ?? '',
             type: 'function',
             function: {
-              name: functionDelta?.name || '',
-              arguments: functionDelta?.arguments || '',
+              name: functionDelta?.name ?? '',
+              arguments: functionDelta?.arguments ?? '',
             },
             ...(toolCallDelta.provider_specific_fields && {
               provider_specific_fields: toolCallDelta.provider_specific_fields,

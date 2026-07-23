@@ -93,7 +93,8 @@ describe('Sessions / SessionHandle / TurnHandle (storage + run)', () => {
       signal: new AbortController().signal,
       resolver: makeTestResolver(),
     });
-    for await (const _ of first.stream()) {
+    for await (const event of first.stream()) {
+      void event;
       // drain
     }
     const root2 = await session.run({
@@ -181,7 +182,8 @@ describe('Sessions / SessionHandle / TurnHandle (storage + run)', () => {
       resolver: makeTestResolver({ close: closeOnSuccess }),
     });
     expect(closeOnSuccess).not.toHaveBeenCalled();
-    for await (const _ of turn.stream()) {
+    for await (const event of turn.stream()) {
+      void event;
       // drain
     }
     expect(closeOnSuccess).toHaveBeenCalledTimes(1);

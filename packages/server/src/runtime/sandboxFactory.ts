@@ -88,18 +88,20 @@ export function createServerSandboxFactory(deps: { logger: Logger }): TurnSandbo
   // skill_downloader.py needs (TFY_HOST, TFY_API_KEY, TFY_AGENT_NAME) to
   // download tarballs into the sandbox — mirroring the private gateway's
   // sandboxComposition.ts. Until then sandbox sessions run without skills.
-  return async ({ spec, existingSandboxId, tracing }) =>
-    new Sandbox({
-      provider,
-      ...(existingSandboxId !== undefined ? { existingSandboxId } : {}),
-      fileDownloadEnabled: spec.config?.sandbox?.file_downloads ?? false,
-      blockDestructiveToolsInCodeMode: true,
-      scripts,
-      // Sandbox reads its tenant from TFY_TENANT_NAME (see Sandbox constructor)
-      // for the ownership check against provider-created sandbox ids
-      // (`<tenant>.<uuid>`). Must match the tenantName given to the provider.
-      execExtraEnv: { TFY_TENANT_NAME: TENANT_NAME },
-      tracing,
-      logger,
-    });
+  return ({ spec, existingSandboxId, tracing }) =>
+    Promise.resolve(
+      new Sandbox({
+        provider,
+        ...(existingSandboxId !== undefined ? { existingSandboxId } : {}),
+        fileDownloadEnabled: spec.config?.sandbox?.file_downloads ?? false,
+        blockDestructiveToolsInCodeMode: true,
+        scripts,
+        // Sandbox reads its tenant from TFY_TENANT_NAME (see Sandbox constructor)
+        // for the ownership check against provider-created sandbox ids
+        // (`<tenant>.<uuid>`). Must match the tenantName given to the provider.
+        execExtraEnv: { TFY_TENANT_NAME: TENANT_NAME },
+        tracing,
+        logger,
+      }),
+    );
 }

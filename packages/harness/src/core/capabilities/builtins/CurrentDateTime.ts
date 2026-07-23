@@ -22,7 +22,7 @@ export class CurrentDateTime extends LocalToolMCP {
       name: GET_CURRENT_DATETIME_TOOL_NAME,
       description: 'Returns the current datetime in ISO-8601 (UTC) and unix epoch MS format.',
       schema: inputSchema,
-      handler: async () => this.getCurrentDateTime(),
+      handler: () => Promise.resolve(this.getCurrentDateTime()),
     }),
   ];
 

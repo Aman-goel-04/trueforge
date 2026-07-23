@@ -5,8 +5,15 @@
   "scripts": {
     "build": "pnpm --filter @truefoundry/utils build && pnpm --filter @truefoundry/server build",
     "typecheck": "pnpm --filter @truefoundry/utils typecheck && pnpm --filter @truefoundry/utils build && pnpm --filter @truefoundry/server typecheck",
+    "lint": "eslint . --fix --cache --cache-location .eslintcache",
+    "lint:ci": "eslint . --cache --cache-location .eslintcache",
     "test": "pnpm --filter @truefoundry/utils test",
     "dev:server": "pnpm --filter @truefoundry/server dev",
     "pack:dry": "pnpm --filter @truefoundry/utils pack:dry"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.7.0",
+    "typescript-eslint": "^8.65.0"
   }
 }

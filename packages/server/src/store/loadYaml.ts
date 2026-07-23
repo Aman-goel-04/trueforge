@@ -9,7 +9,7 @@ import { parse } from 'yaml';
 import type { z } from 'zod';
 import { CONFIG_DIR } from '../config/config';
 
-export function loadYamlFile<Schema extends z.ZodTypeAny>(fileName: string, schema: Schema): z.infer<Schema> {
+export function loadYamlFile<T>(fileName: string, schema: z.ZodType<T>): T {
   const filePath = path.join(CONFIG_DIR, fileName);
 
   let raw: string;

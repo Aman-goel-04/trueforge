@@ -13,6 +13,7 @@ import { makeSilentLogger } from './harnessMocks';
 const silentLogger = makeSilentLogger();
 const warn = jest.spyOn(silentLogger, 'warn');
 
+// eslint-disable-next-line @typescript-eslint/require-await -- async generator fixture, not awaiting I/O
 async function* unknownToolStream(): AsyncGenerator<
   ExtendedChatCompletionChunk,
   RawAssistantMessageWithUsage,
@@ -40,7 +41,7 @@ async function* unknownToolStream(): AsyncGenerator<
         finish_reason: 'tool_calls',
       },
     ],
-  } as ExtendedChatCompletionChunk;
+  };
 
   return {
     output: {
@@ -59,6 +60,7 @@ async function* unknownToolStream(): AsyncGenerator<
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/require-await -- async generator fixture, not awaiting I/O
 async function* finalAnswerStream(): AsyncGenerator<
   ExtendedChatCompletionChunk,
   RawAssistantMessageWithUsage,
@@ -70,7 +72,7 @@ async function* finalAnswerStream(): AsyncGenerator<
     created: 0,
     model: 'test-model',
     choices: [{ index: 0, delta: { role: 'assistant', content: 'done' }, finish_reason: 'stop' }],
-  } as ExtendedChatCompletionChunk;
+  };
 
   return {
     output: { role: 'assistant', content: 'done' },
@@ -103,7 +105,7 @@ describe('AgentThread unknown tool logging', () => {
       context: [{ role: 'user', content: 'hi' }],
     });
 
-    const deltas: Array<{ tool_calls?: Array<{ tool_info?: unknown }> | undefined }> = [];
+    const deltas: { tool_calls?: { tool_info?: unknown }[] | undefined }[] = [];
     for await (const event of thread.execute({ signal: new AbortController().signal })) {
       if (event.type === 'model.message.delta') {
         deltas.push(event);

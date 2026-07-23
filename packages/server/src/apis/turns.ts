@@ -50,12 +50,12 @@ function createTurnResolver(deps: {
         logger,
         signal,
       }),
-    mcp: async name => {
+    mcp: name => {
       const entry = mcpStore.get(name);
       if (!entry) {
         throw new Error(`MCP server not declared in mcp.yaml: ${name}`);
       }
-      return { url: entry.url, headers: mcpStore.getHeaders(name) };
+      return Promise.resolve({ url: entry.url, headers: mcpStore.getHeaders(name) });
     },
     ...(deps.sandboxFactory ? { sandboxProvider: deps.sandboxFactory } : {}),
     logger,
@@ -165,7 +165,7 @@ export function createTurnsRouter(deps: TurnsRouterDeps) {
         shouldWriteToSSEStream = false;
       });
       try {
-        for await (const event of generator) {
+        for await (const event of generator as AsyncIterable<TurnStreamingEvent>) {
           sequenceNumber += 1;
           if (!stream.closed && !stream.aborted && shouldWriteToSSEStream) {
             try {

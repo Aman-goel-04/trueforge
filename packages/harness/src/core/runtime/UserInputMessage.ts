@@ -40,7 +40,7 @@ function isImageMime(mime: string): boolean {
 }
 
 function parseMimeFromFileData(fileData: string): string {
-  const match = fileData.match(/^data:([^;,]+)/);
+  const match = /^data:([^;,]+)/.exec(fileData);
   if (!match?.[1]) {
     throw new InvalidAgentInputError('File data URI is missing or has unparseable MIME type');
   }
@@ -82,10 +82,10 @@ function buildUploadedFilesAnnouncement(
   const entries = files
     .map(
       (f, i) =>
-        `[file_${i + 1}]\n  filename: ${f.filename}\n  path: ${f.path}\n  mime: ${f.mime}\n  size: ${f.size} bytes`,
+        `[file_${String(i + 1)}]\n  filename: ${f.filename}\n  path: ${f.path}\n  mime: ${f.mime}\n  size: ${String(f.size)} bytes`,
     )
     .join('\n\n');
-  return internalSystemTag(`Uploaded files (${files.length}):\n${entries}`);
+  return internalSystemTag(`Uploaded files (${String(files.length)}):\n${entries}`);
 }
 
 function partitionContent(parts: readonly AgentUserContentPart[]): {
@@ -171,8 +171,11 @@ export async function processAgentUserInput(
 
     const uploadedFiles: { filename: string; path: string; mime: string; size: number }[] = [];
     for (let i = 0; i < uploadResults.length; i++) {
-      const result = uploadResults[i]!;
-      const file = filesToUploadToSandbox[i]!;
+      const result = uploadResults[i];
+      const file = filesToUploadToSandbox[i];
+      if (result === undefined || file === undefined) {
+        throw new Error('Unreachable: uploadResults/files length mismatch');
+      }
       if (result.status === 'fulfilled') {
         if (result.value.sandboxCreated) {
           sandboxCreated = result.value.sandboxCreated;
@@ -184,7 +187,7 @@ export async function processAgentUserInput(
           size: file.buffer.length,
         });
       } else {
-        throw (result as PromiseRejectedResult).reason;
+        throw (result).reason;
       }
     }
     if (uploadedFiles.length > 0) {

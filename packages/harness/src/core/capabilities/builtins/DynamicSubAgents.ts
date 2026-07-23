@@ -91,14 +91,15 @@ export class DynamicSubAgents extends LocalToolMCP {
           input: z.string().min(1),
           model: z.enum(modelKeys as [string, ...string[]]),
         }),
-        handler: async input => ({
-          createSubAgent: {
-            type: 'dynamic',
-            name: input.name,
-            input: input.input,
-            model: input.model,
-          },
-        }),
+        handler: input =>
+          Promise.resolve({
+            createSubAgent: {
+              type: 'dynamic',
+              name: input.name,
+              input: input.input,
+              model: input.model,
+            },
+          }),
       });
     }
     return defineTool({
@@ -108,13 +109,14 @@ export class DynamicSubAgents extends LocalToolMCP {
         name: z.string().min(1),
         input: z.string().min(1),
       }),
-      handler: async input => ({
-        createSubAgent: {
-          type: 'dynamic',
-          name: input.name,
-          input: input.input,
-        },
-      }),
+      handler: input =>
+        Promise.resolve({
+          createSubAgent: {
+            type: 'dynamic',
+            name: input.name,
+            input: input.input,
+          },
+        }),
     });
   }
 
@@ -127,18 +129,19 @@ export class DynamicSubAgents extends LocalToolMCP {
     return this.tools;
   }
 
-  override async toolCallInfo(
+  override toolCallInfo(
     params: CallToolRequest['params'],
     _resolveUnderlyingTool?: boolean,
   ): Promise<InternalToolCallInfo> {
-    return {
+    void _resolveUnderlyingTool;
+    return Promise.resolve({
       type: 'truefoundry-system',
       mcp_server_id: this.mcpServerId,
       mcp_server_name: this.name,
       original_tool_name: params.name,
       is_approval_required: false,
       is_thread_creation: true,
-    };
+    });
   }
 }
 

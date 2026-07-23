@@ -49,7 +49,7 @@ try {
   });
 
   const server = serve({ fetch: app.fetch, port: configuration.PORT }, info => {
-    console.log(`Agent server listening on http://localhost:${info.port} (docs at /docs)`);
+    console.log(`Agent server listening on http://localhost:${String(info.port)} (docs at /docs)`);
   });
 
   server.on('error', error => {

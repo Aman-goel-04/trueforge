@@ -123,7 +123,9 @@ export class TurnResourceResolver<
   async close(): Promise<void> {
     const sandbox = this.#sandbox;
     this.#sandbox = undefined;
-    await sandbox?.close().catch(() => {});
+    await sandbox?.close().catch(() => {
+      /* no-op */
+    });
   }
 
   /**

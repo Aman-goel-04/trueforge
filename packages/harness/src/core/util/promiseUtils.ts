@@ -13,7 +13,7 @@ export function withTimeout<T>(p: Promise<T>, ms: number, label?: string): Promi
 
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(
-      () => reject(new PromiseTimeoutError(label ? `Timed out after ${ms}ms (${label})` : `Timed out after ${ms}ms`)),
+      () => { reject(new PromiseTimeoutError(label ? `Timed out after ${String(ms)}ms (${label})` : `Timed out after ${String(ms)}ms`)); },
       ms,
     );
   });
@@ -27,13 +27,17 @@ export async function* mergeAsyncGenerators<T>(
   generators: AsyncGenerator<T>[],
   logger: Logger,
 ): AsyncGenerator<T, void, unknown> {
-  type PendingResult = { idx: number; result: IteratorResult<T, void> };
+  interface PendingResult { idx: number; result: IteratorResult<T, void> }
   const pending = new Map<number, Promise<PendingResult>>();
 
   const getNextIteration = (idx: number): Promise<PendingResult> => {
-    const nextPromise = generators[idx]!.next().then(result => ({ idx, result }));
-    nextPromise.catch(error => {
-      logger.error(`Unexpected error in mergeAsyncGenerators generator ${idx}`, extractErrorLogFields(error));
+    const generator = generators[idx];
+    if (generator === undefined) {
+      throw new Error(`Unreachable: missing generator at index ${String(idx)}`);
+    }
+    const nextPromise = generator.next().then(result => ({ idx, result }));
+    nextPromise.catch((error: unknown) => {
+      logger.error(`Unexpected error in mergeAsyncGenerators generator ${String(idx)}`, extractErrorLogFields(error));
     });
     return nextPromise;
   };

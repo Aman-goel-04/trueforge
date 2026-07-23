@@ -24,13 +24,13 @@ export function getUniqueSanitizedToolName(
 
   const nameBase = sanitized.substring(0, MAX_TOOL_NAME_LENGTH - 2);
   for (let suffix = 1; suffix <= MAX_DUP_SUFFIX; suffix++) {
-    const candidate = `${nameBase}${suffix}`;
+    const candidate = `${nameBase}${String(suffix)}`;
     if (!existingNames.has(candidate)) {
       return { name: candidate, hadCollision: true };
     }
   }
 
   throw new ToolNameCollisionError(
-    `Tool name collision limit exceeded for "${toolName}": more than ${MAX_DUP_SUFFIX} duplicates across MCP servers`,
+    `Tool name collision limit exceeded for "${toolName}": more than ${String(MAX_DUP_SUFFIX)} duplicates across MCP servers`,
   );
 }

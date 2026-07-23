@@ -44,9 +44,7 @@ export interface DaytonaSandboxProviderOptions {
 
 let daytonaClient: Daytona | undefined;
 function getDaytonaClient(apiKey: string): Daytona {
-  if (!daytonaClient) {
-    daytonaClient = new Daytona({ apiKey });
-  }
+  daytonaClient ??= new Daytona({ apiKey });
   return daytonaClient;
 }
 
@@ -133,7 +131,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
           ...extractErrorLogFields(recoveryError),
           originalError: extractErrorLogFields(originalError),
         });
-        throw new Error('Sandbox is unavailable; recovery attempt failed.');
+        throw new Error('Sandbox is unavailable; recovery attempt failed.', { cause: recoveryError });
       }
 
       if (!recovered) throw originalError;
@@ -206,7 +204,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
 
   private async getFileInfo(sandbox: Sandbox, path: string): Promise<SandboxFileInfo> {
     const details = await sandbox.fs.getFileDetails(path);
-    return { size: details.size ?? Infinity, isDir: details.isDir ?? false };
+    return { size: details.size, isDir: details.isDir };
   }
 
   async downloadFile(params: { sandboxId: string; path: string }): Promise<Buffer> {
@@ -281,7 +279,7 @@ export class DaytonaSandboxProvider implements SandboxProvider {
     return undefined;
   }
 
-  getToolResultDumpDir(_sandboxId: string): string {
+  getToolResultDumpDir(): string {
     return '/tmp/tool-results';
   }
 

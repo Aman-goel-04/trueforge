@@ -38,13 +38,17 @@ void _runtimeLlmBatch;
 void _runtimePublicBatch;
 
 // @ts-expect-error mixed user + approval is not a public send batch
-const _mixedUserApproval: AgentThreadSendBatch = [userMsg, approval];
+const mixedUserApproval: AgentThreadSendBatch = [userMsg, approval];
 // @ts-expect-error mixed user + LLM tool is not a public send batch
-const _mixedUserLlm: AgentThreadSendBatch = [userMsg, llmTool];
+const mixedUserLlm: AgentThreadSendBatch = [userMsg, llmTool];
 // @ts-expect-error mixed approval + LLM tool is not a public send batch
-const _mixedApprovalLlm: AgentThreadSendBatch = [approval, llmTool];
+const mixedApprovalLlm: AgentThreadSendBatch = [approval, llmTool];
 // @ts-expect-error mixed user + LLM tool is not a runtime send batch either
-const _mixedRuntime: AgentThreadRuntimeSendBatch = [userMsg, llmTool];
+const mixedRuntime: AgentThreadRuntimeSendBatch = [userMsg, llmTool];
+void mixedUserApproval;
+void mixedUserLlm;
+void mixedApprovalLlm;
+void mixedRuntime;
 
 describe('send batch type ownership', () => {
   it('compiles homogeneous modes and rejects mixed pairs', () => {

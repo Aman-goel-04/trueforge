@@ -3,7 +3,7 @@
  */
 import type { MCPAuthRequiredEvent, ModelMessageDeltaEvent, ThreadDoneEvent } from '../core/events/eventSchemas';
 import { EventType as HarnessEventType, newEventId } from '../core/events/eventSchemas';
-import type { RegisteredPassthroughEvent } from '../core/events/PassthroughEvents';
+import type { WithRegisteredPassthrough } from '../core/events/PassthroughEvents';
 import { getEmptyUsage } from '../core/llm/LLMTypes';
 import { getEmptyMetric } from '../core/llm/metrics';
 import {
@@ -22,12 +22,9 @@ import { CancellationReason, type TerminalTurnState, type TurnInputItem, type Tu
 import type { ISessionStore } from './store/ISessionStore';
 
 /** Streaming yield union — deltas pass through; never persisted. No sequence_number. */
-export type TurnStreamingEvent =
-  | TurnCreatedEvent
-  | TurnDoneEvent
-  | TurnEvent
-  | ModelMessageDeltaEvent
-  | RegisteredPassthroughEvent;
+export type TurnStreamingEvent = WithRegisteredPassthrough<
+  TurnCreatedEvent | TurnDoneEvent | TurnEvent | ModelMessageDeltaEvent
+>;
 
 function cancellationReasonFromAbortReason(abortReason: unknown): CancellationReason {
   if (abortReason === CancellationReason.ServerExecutionTimeout) {
@@ -61,7 +58,10 @@ function toMCPAuthRequiredEvent(event: InternalMCPAuthRequiredEvent): MCPAuthReq
     id: event.id,
     created_at: event.created_at,
     thread_id: event.thread_id,
-    mcp_servers: event.mcp_servers.map(({ thread_ids: _threadIds, ...server }) => server),
+    mcp_servers: event.mcp_servers.map(({ thread_ids, ...server }) => {
+      void thread_ids;
+      return server;
+    }),
   };
 }
 
@@ -280,12 +280,14 @@ export class TurnHandle<TTurnCustom extends object = Record<string, never>> {
         this.turn = { ...this.turn, state: terminalState, updated_at: createdAt };
       } catch (persistError) {
         // Store-write failures reject the stream (caller drain .catch).
-        await resolver.close().catch(() => {});
+        await resolver.close().catch(() => {
+          /* no-op */
+        });
         // eslint-disable-next-line no-unsafe-finally -- deliberate: the terminal-state write runs in finally and its failure must reject the stream
         throw persistError;
       }
 
-      await resolver.close().catch(err => {
+      await resolver.close().catch((err: unknown) => {
         resolver.logger.warn('TurnResourceResolver.close() failed', { err });
       });
 
@@ -295,7 +297,7 @@ export class TurnHandle<TTurnCustom extends object = Record<string, never>> {
 
   /** Paginated read of this turn's persisted events. */
   async listEvents(input: { limit: number; page_token?: string; order?: 'asc' | 'desc' }): Promise<{
-    data: Array<TurnEvent | TurnCreatedEvent | TurnDoneEvent | RegisteredPassthroughEvent>;
+    data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
     pagination: TokenPagination;
   }> {
     return this.store.listTurnEvents({

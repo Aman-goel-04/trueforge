@@ -36,7 +36,7 @@ function isReadOnly(annotations?: ToolAnnotations): boolean {
 }
 
 function isWrite(annotations?: ToolAnnotations): boolean {
-  return annotations?.readOnlyHint === false && annotations?.destructiveHint !== true;
+  return annotations?.readOnlyHint === false && annotations.destructiveHint !== true;
 }
 
 function isDestructive(annotations?: ToolAnnotations): boolean {

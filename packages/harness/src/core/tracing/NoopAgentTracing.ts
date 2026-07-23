@@ -1,4 +1,3 @@
-import type { AgentThreadMetric } from '../llm/metrics';
 import type { AgentExecutionTrace, AgentLocalToolTrace, AgentRemoteMcpToolTrace, AgentTracing } from './AgentTracing';
 
 class NoopAgentExecutionTrace implements AgentExecutionTrace {
@@ -6,31 +5,49 @@ class NoopAgentExecutionTrace implements AgentExecutionTrace {
     return operation();
   }
 
-  startSubAgent(_name: string, _input: string): AgentExecutionTrace {
+  startSubAgent(): AgentExecutionTrace {
     return this;
   }
 
-  setOutput(_output: string): void {}
+  setOutput(): void {
+    /* no-op */
+  }
 
-  setMetrics(_metrics: AgentThreadMetric): void {}
+  setMetrics(): void {
+    /* no-op */
+  }
 
-  setError(_error: unknown): void {}
+  setError(): void {
+    /* no-op */
+  }
 
-  setSuccess(): void {}
+  setSuccess(): void {
+    /* no-op */
+  }
 
-  end(): void {}
+  end(): void {
+    /* no-op */
+  }
 }
 
 class NoopAgentLocalToolTrace implements AgentLocalToolTrace {
-  setOutput(_output: string): void {}
+  setOutput(): void {
+    /* no-op */
+  }
 
-  setSandboxId(_sandboxId: string): void {}
+  setSandboxId(): void {
+    /* no-op */
+  }
 }
 
 class NoopAgentRemoteMcpToolTrace implements AgentRemoteMcpToolTrace {
-  setOutput(_output: string): void {}
+  setOutput(): void {
+    /* no-op */
+  }
 
-  setNumberOfTools(_count: number): void {}
+  setNumberOfTools(): void {
+    /* no-op */
+  }
 }
 
 const NOOP_EXECUTION_TRACE = new NoopAgentExecutionTrace();
@@ -42,7 +59,7 @@ export const NOOP_AGENT_TRACING: AgentTracing = {
     return operation();
   },
 
-  startRootSpan(_input: string): AgentExecutionTrace {
+  startRootSpan(): AgentExecutionTrace {
     return NOOP_EXECUTION_TRACE;
   },
 
@@ -55,6 +72,7 @@ export const NOOP_AGENT_TRACING: AgentTracing = {
     },
     operation: (span: AgentLocalToolTrace) => Promise<T>,
   ): Promise<T> {
+    void _input;
     return operation(NOOP_LOCAL_TOOL_TRACE);
   },
 
@@ -70,6 +88,7 @@ export const NOOP_AGENT_TRACING: AgentTracing = {
     },
     operation: (span: AgentRemoteMcpToolTrace) => Promise<T>,
   ): Promise<T> {
+    void _input;
     return operation(NOOP_REMOTE_MCP_TOOL_TRACE);
   },
 };

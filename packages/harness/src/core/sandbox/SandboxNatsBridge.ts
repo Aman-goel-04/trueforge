@@ -119,13 +119,13 @@ export class SandboxNatsBridge {
         const nc = await context.with(suppressTracing(context.active()), () =>
           wsconnect({ servers: [params.url], timeout: NATS_CONNECT_TIMEOUT_MS }),
         );
-        logger.info(`Connected to sandbox NATS (attempt ${attempt})`, { subjectPrefix });
+        logger.info(`Connected to sandbox NATS (attempt ${String(attempt)})`, { subjectPrefix });
         const bridge = new SandboxNatsBridge(nc, params.toolSets, subjectPrefix, logger);
         bridge.subscribe();
         return bridge;
       } catch (e) {
         lastErr = e;
-        logger.warn(`Sandbox NATS connect attempt ${attempt} failed`, extractErrorLogFields(e));
+        logger.warn(`Sandbox NATS connect attempt ${String(attempt)} failed`, extractErrorLogFields(e));
         if (attempt < NATS_CONNECT_RETRIES) {
           await new Promise(resolve => setTimeout(resolve, NATS_CONNECT_BACKOFF_MS));
         }
@@ -143,7 +143,9 @@ export class SandboxNatsBridge {
     } catch (e) {
       // drain rejected or timed out, nc.close() terminates all pending requests and subscriptions on the connection.
       this.logger.warn('Sandbox NATS drain failed/timed out; forcing close', extractErrorLogFields(e));
-      await this.nc.close().catch(() => {});
+      await this.nc.close().catch(() => {
+        /* no-op */
+      });
     }
   }
 
@@ -153,12 +155,12 @@ export class SandboxNatsBridge {
 
   private subscribe(): void {
     this.nc.subscribe(`${this.subjectPrefix}.${SANDBOX_NATS_MCP_LEAF}`, {
-      callback: (err, msg) => this.handle(err, msg, m => this.route(m)),
+      callback: (err, msg) => { this.handle(err, msg, m => this.route(m)); },
     });
   }
 
   private route(msg: Msg): Promise<unknown> {
-    const req = this.decode<BridgeRequest>(msg);
+    const req = this.decode(msg);
     switch (req.op) {
       case 'list_tools':
         return this.handleListTools(req);
@@ -225,8 +227,8 @@ export class SandboxNatsBridge {
     return new TextEncoder().encode(JSON.stringify(reply));
   }
 
-  private decode<T>(msg: Msg): T {
-    return JSON.parse(new TextDecoder().decode(msg.data)) as T;
+  private decode(msg: Msg): BridgeRequest {
+    return JSON.parse(new TextDecoder().decode(msg.data)) as BridgeRequest;
   }
 
   private getToolSet(serverName: string): IToolSet {

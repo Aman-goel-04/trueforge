@@ -12,7 +12,7 @@ export async function paginateWithCursorGuard<T>(
 ): Promise<T[]> {
   const allItems: T[] = [];
   const seenCursors = new Set<string>();
-  const serverName = serverIdentifier || 'unknown';
+  const serverName = serverIdentifier ?? 'unknown';
 
   const firstResult = await fetchNext(undefined);
   allItems.push(...firstResult.items);

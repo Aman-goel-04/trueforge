@@ -1,5 +1,5 @@
 import type { MCPServerInitInfo, ThreadOverwriteContextEvent } from '../../core/events/eventSchemas';
-import type { RegisteredPassthroughEvent } from '../../core/events/PassthroughEvents';
+import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
 import type { CompletionUsage } from '../../core/llm/LLMTypes';
 import type {
   AgentThreadSnapshot,
@@ -146,7 +146,7 @@ export interface ISessionStore<
     tenant_name: string;
     session_id: string;
     turn_id: string;
-    events: Array<TurnEvent | TurnCreatedEvent | TurnDoneEvent | RegisteredPassthroughEvent>;
+    events: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
   }): Promise<void>;
 
   /** Adds thread snapshots to the turn (sub-agent spawns). */
@@ -219,7 +219,7 @@ export interface ISessionStore<
     page_token?: string | undefined;
     order?: 'asc' | 'desc' | undefined;
   }): Promise<{
-    data: Array<TurnEvent | TurnCreatedEvent | TurnDoneEvent | RegisteredPassthroughEvent>;
+    data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
     pagination: TokenPagination;
   }>;
 
@@ -240,7 +240,7 @@ export interface ISessionStore<
     page_token?: string | undefined;
     last_turn_id?: string | undefined;
   }): Promise<{
-    data: Array<{ turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }>;
+    data: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[];
     pagination: TokenPagination;
   }>;
 }

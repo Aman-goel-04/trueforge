@@ -83,7 +83,10 @@ export async function executeToolCalls({
     }
 
     try {
-      const args = JSON.parse(toolCall.function.arguments || '{}');
+      const args: Record<string, unknown> = JSON.parse(toolCall.function.arguments || '{}') as Record<
+        string,
+        unknown
+      >;
       const response = await toolInfo.toolSet.callTool(
         {
           name: toolInfo.originalToolName,

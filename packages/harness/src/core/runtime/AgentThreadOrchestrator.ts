@@ -54,7 +54,7 @@ function agentThreadEventToTerminalFields(event: AgentThreadExecutionEvent): {
   }
 }
 
-type UserToolApprovalOrResponseBatch = Array<UserToolApprovalMessage | UserToolResponseMessage>;
+type UserToolApprovalOrResponseBatch = (UserToolApprovalMessage | UserToolResponseMessage)[];
 
 function isUserToolApprovalOrResponseBatch(
   messages: AgentThreadSendBatch,
@@ -482,7 +482,10 @@ export class AgentThreadOrchestrator {
         id: authEvent.id,
         created_at: authEvent.created_at,
         thread_id: authEvent.thread_id,
-        mcp_servers: authEvent.mcp_servers.map(({ thread_ids: _, ...s }) => s),
+        mcp_servers: authEvent.mcp_servers.map(({ thread_ids, ...s }) => {
+          void thread_ids;
+          return s;
+        }),
       };
       requiredActions.push(authRequiredAction);
     }

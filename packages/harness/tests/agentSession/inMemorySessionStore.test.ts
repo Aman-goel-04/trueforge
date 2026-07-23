@@ -13,6 +13,15 @@ import { EventType, newEventId } from '../../src/core/events/eventSchemas';
 import { getEmptyUsage } from '../../src/core/llm/LLMTypes';
 import { makeAgentSpec, makeModelMessageEvent, makeRunningTurnRecord, makeTurnCreatedEvent } from './testHelpers';
 
+
+function mustGet<T>(value: T | undefined | null, label = 'value'): T {
+  if (value === undefined || value === null) {
+    throw new Error(`Expected ${label} to be defined`);
+  }
+  return value;
+}
+
+
 /** Store contract suite — factory-injected so other backends can reuse it. */
 function runStoreContractSuite(createStore: () => ISessionStore) {
   const tenant = 't1';
@@ -33,9 +42,9 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       await seedSession(store);
       const session = await store.getSession({ tenant_name: tenant, session_id: sessionId });
       expect(session).toBeDefined();
-      expect(session!.agent_spec.model.name).toBe('test-model');
-      expect(session!.last_activity_timestamp_ms).toBeGreaterThanOrEqual(before);
-      expect(session!.title).toBeNull();
+      expect(mustGet(session).agent_spec.model.name).toBe('test-model');
+      expect(mustGet(session).last_activity_timestamp_ms).toBeGreaterThanOrEqual(before);
+      expect(mustGet(session).title).toBeNull();
     });
 
     it('getSession does not bump last_activity_timestamp_ms', async () => {
@@ -44,7 +53,7 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       const first = await store.getSession({ tenant_name: tenant, session_id: sessionId });
       await new Promise(r => setTimeout(r, 5));
       const second = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(second!.last_activity_timestamp_ms).toBe(first!.last_activity_timestamp_ms);
+      expect(mustGet(second).last_activity_timestamp_ms).toBe(mustGet(first).last_activity_timestamp_ms);
     });
 
     it('updateSession patches only provided fields and bumps activity', async () => {
@@ -60,9 +69,9 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
         title: 'Hello',
       });
       const after = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(after!.agent_spec.instructions).toBe('updated');
-      expect(after!.title).toBe('Hello');
-      expect(after!.last_activity_timestamp_ms).toBeGreaterThan(before!.last_activity_timestamp_ms);
+      expect(mustGet(after).agent_spec.instructions).toBe('updated');
+      expect(mustGet(after).title).toBe('Hello');
+      expect(mustGet(after).last_activity_timestamp_ms).toBeGreaterThan(mustGet(before).last_activity_timestamp_ms);
     });
 
     it('createSession conflict when session already exists', async () => {
@@ -131,8 +140,8 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       const turn = makeRunningTurnRecord({ sessionId, turnId: 'turn-1' });
       await store.createTurn({ tenant_name: tenant, turn });
       const after = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(after!.last_turn_id).toBe('turn-1');
-      expect(after!.last_activity_timestamp_ms).toBeGreaterThan(before!.last_activity_timestamp_ms);
+      expect(mustGet(after).last_turn_id).toBe('turn-1');
+      expect(mustGet(after).last_activity_timestamp_ms).toBeGreaterThan(mustGet(before).last_activity_timestamp_ms);
     });
 
     it('update_session_title_if_not_exist sets once and never overwrites', async () => {
@@ -154,7 +163,7 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
         update_session_title_if_not_exist: 'Second title',
       });
       const session = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(session!.title).toBe('First title');
+      expect(mustGet(session).title).toBe('First title');
     });
 
     it('rejects unknown previous_turn_id with not-found', async () => {
@@ -199,7 +208,7 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
         }),
       });
       const session = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(session!.last_turn_id).toBe('turn-fork');
+      expect(mustGet(session).last_turn_id).toBe('turn-fork');
     });
 
     it('new root turn (no previous_turn_id) succeeds on non-empty session', async () => {
@@ -214,7 +223,7 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
         turn: makeRunningTurnRecord({ sessionId, turnId: 'turn-root-2' }),
       });
       const session = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(session!.last_turn_id).toBe('turn-root-2');
+      expect(mustGet(session).last_turn_id).toBe('turn-root-2');
     });
 
     it('concurrent createTurn forking the same tip: both succeed', async () => {
@@ -242,7 +251,7 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       ]);
       expect(results.every(r => r.status === 'fulfilled')).toBe(true);
       const session = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(['turn-a', 'turn-b']).toContain(session!.last_turn_id);
+      expect(['turn-a', 'turn-b']).toContain(mustGet(session).last_turn_id);
       const turns = await store.listTurns({
         tenant_name: tenant,
         session_id: sessionId,
@@ -436,7 +445,7 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       });
       const turn = await store.getTurn({ tenant_name: tenant, session_id: sessionId, turn_id: 'turn-1' });
       expect(turn?.snapshot.mcp_servers?.['svc']?.session_id).toBe('mcp-1');
-      expect(turn!.snapshot.sandbox_info?.sandbox_id).toBe('sbx-1');
+      expect(mustGet(turn).snapshot.sandbox_info?.sandbox_id).toBe('sbx-1');
     });
   });
 
@@ -603,9 +612,9 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       const store = createStore();
       await seedSession(store);
       const session = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      session!.agent_spec.instructions = 'mutated';
+      mustGet(session).agent_spec.instructions = 'mutated';
       const again = await store.getSession({ tenant_name: tenant, session_id: sessionId });
-      expect(again!.agent_spec.instructions).toBe('You are a test agent.');
+      expect(mustGet(again).agent_spec.instructions).toBe('You are a test agent.');
     });
   });
 

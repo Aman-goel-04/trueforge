@@ -64,7 +64,8 @@ describe('TurnHandle.stream()', () => {
       resolver: makeTestResolver(),
     });
     await (async () => {
-      for await (const _ of turn.stream()) {
+      for await (const event of turn.stream()) {
+        void event;
         // drain
       }
     })();
@@ -79,12 +80,14 @@ describe('TurnHandle.stream()', () => {
       signal: new AbortController().signal,
       resolver: makeTestResolver(),
     });
-    for await (const _ of turn.stream()) {
+    for await (const event of turn.stream()) {
+      void event;
       // drain
     }
     await expect(
       (async () => {
-        for await (const _ of turn.stream()) {
+        for await (const event of turn.stream()) {
+          void event;
           // should throw before yielding
         }
       })(),
@@ -99,8 +102,9 @@ describe('TurnHandle.stream()', () => {
       previous_turn_id: null,
       signal: new AbortController().signal,
       resolver: makeTestResolver({
-        close: async () => {
+        close: () => {
           closeCalls += 1;
+          return Promise.resolve();
         },
       }),
     });
@@ -131,7 +135,8 @@ describe('TurnHandle.stream()', () => {
       resolver: makeTestResolver(),
     });
     controller.abort(CancellationReason.ClientCancelled);
-    for await (const _ of turn.stream()) {
+    for await (const event of turn.stream()) {
+      void event;
       // drain
     }
     expect(turn.state.status).toBe('cancelled');
@@ -154,13 +159,14 @@ describe('TurnHandle.stream()', () => {
       previous_turn_id: null,
       signal: new AbortController().signal,
       resolver: makeTestResolver({
-        close: async () => {
+        close: () => {
           closeCalls += 1;
-          throw new Error('close boom');
+          return Promise.reject(new Error('close boom'));
         },
       }),
     });
-    for await (const _ of turn.stream()) {
+    for await (const event of turn.stream()) {
+      void event;
       // drain
     }
     expect(closeCalls).toBe(1);
@@ -179,8 +185,8 @@ describe('TurnHandle.stream()', () => {
     const logger = makeSilentLogger();
     const resolver = new TurnResourceResolver({
       llm: () => makeMockILLM({ create: jest.fn().mockImplementation(() => emptyLlmStream()) }),
-      mcp: async () => ({ url: 'http://localhost' }),
-      sandboxProvider: async () => sandbox,
+      mcp: () => Promise.resolve({ url: 'http://localhost' }),
+      sandboxProvider: () => Promise.resolve(sandbox),
       logger,
     });
     const { session } = await createSession();
@@ -191,7 +197,8 @@ describe('TurnHandle.stream()', () => {
       signal: new AbortController().signal,
       resolver,
     });
-    for await (const _ of turn.stream()) {
+    for await (const event of turn.stream()) {
+      void event;
       // drain
     }
     expect(closeSpy).toHaveBeenCalledTimes(1);
@@ -227,7 +234,7 @@ describe('TurnResourceResolver caches', () => {
       }
     })({
       llm: () => makeMockILLM(),
-      mcp: async () => ({ url: 'http://example.invalid' }),
+      mcp: () => Promise.resolve({ url: 'http://example.invalid' }),
       logger,
     });
     await resolver.resolveTwice();
@@ -241,10 +248,10 @@ describe('TurnResourceResolver caches', () => {
     const logger = makeSilentLogger();
     const resolver = new TurnResourceResolver({
       llm: () => makeMockILLM({ create: jest.fn().mockImplementation(() => emptyLlmStream()) }),
-      mcp: async () => ({ url: 'http://localhost' }),
-      sandboxProvider: async () => {
+      mcp: () => Promise.resolve({ url: 'http://localhost' }),
+      sandboxProvider: () => {
         sandboxCreates += 1;
-        return sandbox;
+        return Promise.resolve(sandbox);
       },
       logger,
     });
@@ -265,7 +272,8 @@ describe('TurnResourceResolver caches', () => {
       signal: new AbortController().signal,
       resolver,
     });
-    for await (const _ of turn.stream()) {
+    for await (const event of turn.stream()) {
+      void event;
       // drain
     }
     expect(sandboxCreates).toBe(1);

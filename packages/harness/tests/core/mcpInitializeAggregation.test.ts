@@ -14,14 +14,15 @@ function makeServer(params: { name: string; initInfo?: MCPServerInitInfo; tools?
   return {
     ...base,
     listTools: jest.fn(
-      async (): Promise<ListToolsResponse> => ({
-        result: {
-          tools: params.tools ?? [
-            { name: 'do_thing', description: 'Does a thing', inputSchema: OBJECT_INPUT_SCHEMA, preload: true },
-          ],
-        },
-        wasInitialized: params.initInfo,
-      }),
+      (): Promise<ListToolsResponse> =>
+        Promise.resolve({
+          result: {
+            tools: params.tools ?? [
+              { name: 'do_thing', description: 'Does a thing', inputSchema: OBJECT_INPUT_SCHEMA, preload: true },
+            ],
+          },
+          wasInitialized: params.initInfo,
+        }),
     ),
   };
 }
@@ -54,11 +55,13 @@ describe('convertMCPServersToTools initialization aggregation', () => {
       id: 'oauth-server',
       preload: true,
       hasPreloadedTools: true,
-      listTools: jest.fn(async () => ({
-        authRequired: {
-          servers: [{ id: 'oauth-server', name: 'oauth-server', auth_url: 'https://auth.example' }],
-        },
-      })),
+      listTools: jest.fn(() =>
+        Promise.resolve({
+          authRequired: {
+            servers: [{ id: 'oauth-server', name: 'oauth-server', auth_url: 'https://auth.example' }],
+          },
+        }),
+      ),
       callTool: jest.fn(),
       toolCallInfo: jest.fn(),
     };

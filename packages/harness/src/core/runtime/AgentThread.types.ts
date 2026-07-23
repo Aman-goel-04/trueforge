@@ -1,7 +1,7 @@
 import type { Logger } from 'winston';
 import { z } from 'zod';
 import type { AgentCapability } from '../capabilities/AgentCapability';
-import type { RegisteredPassthroughEvent } from '../events/PassthroughEvents';
+import type { RegisteredPassthroughEvent, WithRegisteredPassthrough } from '../events/PassthroughEvents';
 import type {
   ActionRequiredEvent,
   AgentApprovalDecisionMessage,
@@ -115,7 +115,7 @@ export type AgentSendInput = UserToolApprovalMessage | UserToolResponseMessage |
  * Homogeneous public send batch: all user messages, or all approval/tool-response
  * messages. Mixed batches are rejected at the HTTP/orchestrator boundary.
  */
-export type AgentThreadSendBatch = AgentInputUserMessage[] | Array<UserToolApprovalMessage | UserToolResponseMessage>;
+export type AgentThreadSendBatch = AgentInputUserMessage[] | (UserToolApprovalMessage | UserToolResponseMessage)[];
 
 export type AgentThreadEvent =
   | ModelMessageEvent
@@ -133,10 +133,9 @@ export type AgentThreadEvent =
   | ToolResponseRequiredEvent
   | InternalPassthroughEvent;
 
-export type AgentThreadExecutionEvent =
-  | ThreadCreatedEvent
-  | Exclude<AgentThreadEvent, InternalPassthroughEvent>
-  | RegisteredPassthroughEvent;
+export type AgentThreadExecutionEvent = WithRegisteredPassthrough<
+  ThreadCreatedEvent | Exclude<AgentThreadEvent, InternalPassthroughEvent>
+>;
 
 export interface AgentThreadExecutionResult {
   output: ModelMessageEvent | null;
