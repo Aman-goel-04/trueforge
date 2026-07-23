@@ -6,6 +6,8 @@
 #   MODEL_HEADERS         - extra default headers for every model
 #   MODEL_{NAME}_HEADERS  - per-model overrides ({NAME} = model name,
 #                           uppercased, non-alphanumerics replaced by "_")
+# TODO(oss): replace internal endpoint with a placeholder before the repo
+# goes public.
 base_url: https://internal.devtest.truefoundry.tech/api/llm
 
 models:

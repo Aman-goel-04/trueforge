@@ -1,0 +1,45 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write # required for npm trusted publishing (OIDC)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4 # reads pnpm version from root packageManager field
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # OIDC trusted publishing requires npm >= 11.5.1; node 22 bundles npm 10.x.
+      - run: npm install -g npm@latest
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm test
+
+      # Guard: tag must match package.json version.
+      # npm publishes what's in package.json, not the tag name.
+      - name: Verify tag matches package version
+        working-directory: packages/harness
+        run: |
+          PKG_VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$PKG_VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match packages/harness ($PKG_VERSION)"
+            exit 1
+          fi
+
+      - name: Publish
+        working-directory: packages/harness
+        run: npm publish --access public
+        # TODO(oss): add --provenance once the repo is public. Do NOT add it now:
+        # provenance publicly attests the source repo and commit.

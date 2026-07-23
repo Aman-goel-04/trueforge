@@ -6,4 +6,6 @@
 #                         uppercased, non-alphanumerics replaced by "_")
 mcp_servers:
   - name: github-remote
+    # TODO(oss): replace internal endpoint with a placeholder before the repo
+    # goes public.
     url: https://internal.devtest.truefoundry.tech/api/llm/truefoundry/mcp/github-remote/server
