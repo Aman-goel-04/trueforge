@@ -1,0 +1,64 @@
+{
+  "name": "@truefoundry/utils",
+  "version": "0.1.0",
+  "description": "TrueFoundry agent core and session library",
+  "author": "Truefoundry",
+  "license": "UNLICENSED",
+  "private": false,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./agent-session": {
+      "types": "./dist/agentSession/index.d.ts",
+      "import": "./dist/agentSession/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "pnpm run build:js && pnpm run build:dts && pnpm run build:scripts",
+    "build:js": "tsup",
+    "build:dts": "tsc -p tsconfig.build.json --emitDeclarationOnly",
+    "build:scripts": "mkdir -p dist/sandbox-scripts && cp src/core/sandbox/scripts/*.py dist/sandbox-scripts/",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --config jest.config.cjs --forceExit",
+    "pack:dry": "pnpm pack --dry-run",
+    "prepack": "node -e \"const fs=require('node:fs'); for (const f of fs.readdirSync('.')) { if (/^readme(\\.(md|txt|markdown))?$/i.test(f)) { console.error('Refusing to pack: remove '+f+' so the npm page has no README'); process.exit(1); } }\""
+  },
+  "dependencies": {
+    "@daytona/sdk": "^0.190.0",
+    "@hono/zod-openapi": "^0.19.10",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@nats-io/nats-core": "3.0.2",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/core": "^2.9.0",
+    "dedent": "^1.7.2",
+    "openai": "^4.104.0",
+    "ulid": "^3.0.2",
+    "winston": "^3.13.0",
+    "ws": "^8.21.0",
+    "zod": "^3.24.3",
+    "zod-to-json-schema": "^3.25.1"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.11.0",
+    "@swc/jest": "^0.2.37",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^24.12.0",
+    "@types/ws": "^8.5.10",
+    "jest": "^29.7.0",
+    "tsup": "^8.5.0",
+    "typescript": "^7.0.2"
+  }
+}

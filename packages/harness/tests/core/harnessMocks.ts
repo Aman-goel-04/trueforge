@@ -1,0 +1,102 @@
+import type { Logger } from 'winston';
+import winston from 'winston';
+import type { ILLM } from '../../src/core/llm/ILLM';
+import type { AgentToolSchema, IToolSet, ListToolsResponse } from '../../src/core/mcp/IMCPServer';
+import type { SandboxProvider } from '../../src/core/sandbox/provider/Provider';
+import { Sandbox } from '../../src/core/sandbox/Sandbox';
+import { NOOP_AGENT_TRACING } from '../../src/core/tracing/NoopAgentTracing';
+
+export const OBJECT_INPUT_SCHEMA = { type: 'object' as const, properties: {} };
+
+/** Minimal typed ILLM stub — both methods required by the interface. */
+export function makeMockILLM(overrides: Partial<ILLM> = {}): ILLM {
+  return {
+    create: jest.fn(),
+    createNonStream: jest.fn(),
+    ...overrides,
+  };
+}
+
+/**
+ * Real Winston logger (silent). Prefer this over structural casts.
+ * `child` is wired to return the same instance so spies on the root logger still fire.
+ */
+export function makeSilentLogger(): Logger {
+  const logger = winston.createLogger({ silent: true, transports: [] });
+  logger.child = (() => logger) as Logger['child'];
+  return logger;
+}
+
+export function makeMockIMCPServer(params: {
+  name: string;
+  preload: boolean;
+  /** When set, overrides default `hasPreloadedTools` (defaults to `preload`). */
+  hasPreloadedTools?: boolean | undefined;
+  preloadTools?: string[] | undefined;
+  tools?: AgentToolSchema[] | undefined;
+}): IToolSet {
+  return {
+    name: params.name,
+    id: params.name,
+    preload: params.preload,
+    hasPreloadedTools: params.hasPreloadedTools ?? params.preload,
+    listTools: jest.fn(
+      async (): Promise<ListToolsResponse> => ({
+        result: {
+          tools: params.tools ?? [
+            { name: 'tool_a', description: 'A', inputSchema: OBJECT_INPUT_SCHEMA, preload: params.preload },
+          ],
+        },
+        wasInitialized: undefined,
+      }),
+    ),
+    callTool: jest.fn(),
+    toolCallInfo: jest.fn(),
+  };
+}
+
+export function makeStubPublicSandbox(tenantName = 'test-tenant'): Sandbox {
+  const provider: SandboxProvider = {
+    createSandbox: jest.fn(),
+    exec: jest.fn(),
+    getAdditionalInstructions: () => undefined,
+    getToolResultDumpDir: () => '/tmp/tool-results',
+    getGitCredentialsPath: () => '/tmp/.git-credentials',
+    downloadFile: jest.fn(),
+    uploadFile: jest.fn(),
+    getNatsBridgeUrl: jest.fn(),
+  };
+  return new Sandbox({
+    provider,
+    blockDestructiveToolsInCodeMode: true,
+    execExtraEnv: { TFY_TENANT_NAME: tenantName },
+    scripts: { mcpClient: '# mcp', skillDownloader: '# skills' },
+    logger: makeSilentLogger(),
+    tracing: NOOP_AGENT_TRACING,
+  });
+}
+
+/** Extract `mcp server: <name>` labels from an LLM tools array (public create() body). */
+export function mcpServerNamesFromTools(tools: unknown): string[] {
+  if (!Array.isArray(tools)) return [];
+  const names: string[] = [];
+  for (const tool of tools) {
+    const description =
+      tool &&
+      typeof tool === 'object' &&
+      'function' in tool &&
+      tool.function &&
+      typeof tool.function === 'object' &&
+      'description' in tool.function &&
+      typeof tool.function.description === 'string'
+        ? tool.function.description
+        : undefined;
+    if (!description) continue;
+    const match = /^mcp server: ([^\n]+)/.exec(description);
+    const serverName = match?.[1];
+    if (serverName !== undefined && !names.includes(serverName)) {
+      names.push(serverName);
+    }
+  }
+  return names;
+}

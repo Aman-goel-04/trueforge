@@ -1,0 +1,12 @@
+{
+  "name": "@truefoundry/harness-workspace",
+  "private": true,
+  "packageManager": "pnpm@11.16.0+sha512.b767e9a98fc87aec0f42daefcd0e84941c2cdb45d73c4e1e68860fb2bdfdbe032ab592105479e5e05c237f740c8a5ffdbbb52385797ddc2296745a1bbb883e8d",
+  "scripts": {
+    "build": "pnpm --filter @truefoundry/utils build && pnpm --filter @truefoundry/server build",
+    "typecheck": "pnpm --filter @truefoundry/utils typecheck && pnpm --filter @truefoundry/utils build && pnpm --filter @truefoundry/server typecheck",
+    "test": "pnpm --filter @truefoundry/utils test",
+    "dev:server": "pnpm --filter @truefoundry/server dev",
+    "pack:dry": "pnpm --filter @truefoundry/utils pack:dry"
+  }
+}

@@ -1,0 +1,62 @@
+import type { Logger } from 'winston';
+import type { AgentCapability } from '../core/capabilities/AgentCapability';
+import type { AgentDefinition } from '../core/runtime/AgentDefinition';
+import type { AgentInfo } from '../core/runtime/AgentThread.types';
+import type { Sandbox, SandboxInfo } from '../core/sandbox/Sandbox';
+import type { AgentTracing } from '../core/tracing/AgentTracing';
+import type { TurnRecord } from './models/TurnRecord';
+import type { AgentSpec } from './schemas/agentSpec';
+
+/**
+ * Per-run wiring contract consumed by SessionHandle.run(). Implementations hold
+ * per-request state (secrets, providers, caches) freely.
+ */
+export interface ITurnResourceResolver<TTurnCustom extends object = Record<string, never>> {
+  /** Forwarded to AgentThread / orchestrator / RemoteMCP. */
+  readonly logger: Logger;
+  /** Called exactly once per run, before any other method. */
+  createTracing(): AgentTracing;
+  /**
+   * Called exactly once per run, before any thread is built; the harness holds
+   * the result and shares the same reference across all threads. Return
+   * undefined when the run needs no sandbox. `existing` carries the previous
+   * turn's sandbox info for cross-turn reattach.
+   */
+  resolveSandbox(input: {
+    spec: AgentSpec;
+    existing?: SandboxInfo | undefined;
+    previousTurn?: TurnRecord<TTurnCustom> | undefined;
+    signal: AbortSignal;
+    tracing: AgentTracing;
+  }): Promise<Sandbox | undefined>;
+  /**
+   * Called once per thread_id; calls for different ids may overlap (parallel
+   * sub-agent spawns), so implementations must be concurrency-safe across ids.
+   * `agent_info` is set for sub-agent threads. `previousTurn` is read-only:
+   * branch on it, but never load state into capabilities — return blank
+   * instances; the AgentThread constructor is the sole hydration path.
+   * `extraCapabilities` are appended after the built-in capabilities.
+   */
+  resolveAgentDefinition(input: {
+    spec: AgentSpec;
+    thread_id: string;
+    agent_info?: AgentInfo | undefined;
+    previousTurn?: TurnRecord<TTurnCustom> | undefined;
+    signal: AbortSignal;
+    tracing: AgentTracing;
+  }): Promise<{
+    definition: AgentDefinition;
+    extraCapabilities?: AgentCapability[] | undefined;
+  }>;
+  /**
+   * Release per-run resources. Called by the harness at the end of the run:
+   * by TurnHandle.stream() in its finally (AFTER the terminal state write), or by
+   * SessionHandle.run() when it throws before a TurnHandle exists — so resources acquired
+   * during a failed run (e.g. a sandbox VM) are still released. Best-effort:
+   * the harness logs and swallows errors — close() can never flip a terminal
+   * state or fail the turn. Must be idempotent. The resolver owns cleanup
+   * because it owns acquisition: the run flow calls this one method without
+   * knowing what was resolved.
+   */
+  close(): Promise<void>;
+}

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+*.tgz
+.DS_Store
+*.log
+.env
+packages/server/src/config/.env
+coverage/
+.turbo/
+*.tsbuildinfo
+.pnpm-store/

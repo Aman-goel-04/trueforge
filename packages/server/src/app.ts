@@ -1,0 +1,88 @@
+/**
+ * HTTP application: composes the resource routers and serves the OpenAPI
+ * document (/openapi.json) and Swagger UI (/docs).
+ */
+import { swaggerUI } from '@hono/swagger-ui';
+import { OpenAPIHono } from '@hono/zod-openapi';
+import { HTTPException } from 'hono/http-exception';
+import type { Logger } from 'winston';
+import type { Sessions } from '@truefoundry/utils/agent-session';
+import type { ISessionStore } from '@truefoundry/utils/agent-session';
+import type { TurnSandboxFactory } from '@truefoundry/utils/agent-session';
+import { createMcpRouter } from './apis/mcp';
+import { createModelsRouter } from './apis/models';
+import { createSessionsRouter } from './apis/sessions';
+import { createSkillsRouter } from './apis/skills';
+import { createTurnsRouter } from './apis/turns';
+import type { ActiveTurnRegistry } from './runtime/activeTurns';
+import type { McpStore } from './store/McpStore';
+import type { ModelStore } from './store/ModelStore';
+import type { SkillStore } from './store/SkillStore';
+
+export const openApiDocConfig = {
+  openapi: '3.0.0',
+  info: {
+    title: 'Agent Server',
+    description: 'Agent server exposing models, MCP servers and skills from local YAML config.',
+    version: '0.1.0',
+  },
+};
+
+export interface ServerDeps {
+  modelStore: ModelStore;
+  mcpStore: McpStore;
+  skillStore: SkillStore;
+  sessionStore: ISessionStore;
+  sessions: Sessions;
+  activeTurns: ActiveTurnRegistry;
+  /** Built at boot from SANDBOX_SETTINGS; undefined = sandbox unsupported. */
+  sandboxFactory?: TurnSandboxFactory;
+  logger: Logger;
+}
+
+export function createServerApp(deps: ServerDeps) {
+  const app = new OpenAPIHono();
+
+  app.get('/', c => c.text('OK!'));
+
+  app.route('/v1/models', createModelsRouter(deps.modelStore));
+  app.route('/v1/mcp-servers', createMcpRouter({ mcpStore: deps.mcpStore, logger: deps.logger }));
+  app.route('/v1/skills', createSkillsRouter(deps.skillStore));
+  app.route(
+    '/v1/sessions',
+    createSessionsRouter({
+      sessions: deps.sessions,
+      sessionStore: deps.sessionStore,
+      activeTurns: deps.activeTurns,
+      modelStore: deps.modelStore,
+      mcpStore: deps.mcpStore,
+      sandboxSupported: deps.sandboxFactory !== undefined,
+    }),
+  );
+  app.route(
+    '/v1/sessions',
+    createTurnsRouter({
+      sessions: deps.sessions,
+      activeTurns: deps.activeTurns,
+      modelStore: deps.modelStore,
+      mcpStore: deps.mcpStore,
+      ...(deps.sandboxFactory ? { sandboxFactory: deps.sandboxFactory } : {}),
+      logger: deps.logger,
+    }),
+  );
+
+  app.get('/docs', swaggerUI({ url: '/openapi.json' }));
+  app.get('/openapi.json', c => c.json(app.getOpenAPIDocument(openApiDocConfig)));
+
+  app.notFound(c => c.json({ error: { message: `Route not found: ${c.req.method} ${c.req.path}` } }, 404));
+
+  app.onError((error, c) => {
+    if (error instanceof HTTPException) {
+      return c.json({ error: { message: error.message } }, error.status);
+    }
+    deps.logger.error('Unhandled error', { message: error.message, stack: error.stack });
+    return c.json({ error: { message: 'Internal server error' } }, 500);
+  });
+
+  return app;
+}

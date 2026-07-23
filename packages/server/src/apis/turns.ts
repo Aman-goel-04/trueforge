@@ -1,0 +1,194 @@
+import { OpenAPIHono, type RouteHandler } from '@hono/zod-openapi';
+import { streamSSE } from 'hono/streaming';
+import { Readable } from 'stream';
+import type { Logger } from 'winston';
+import { CancellationReason, type TurnInputItem } from '@truefoundry/utils/agent-session';
+import type { Sessions } from '@truefoundry/utils/agent-session';
+import { SessionStoreNotFoundError } from '@truefoundry/utils/agent-session';
+import type { TurnStreamingEvent } from '@truefoundry/utils/agent-session';
+import { TurnResourceResolver, type TurnSandboxFactory } from '@truefoundry/utils/agent-session';
+import { AgentHarnessError, McpConnectionError } from '@truefoundry/utils/core';
+import { OpenAILLM } from '@truefoundry/utils/core';
+import { isAgentInputUserMessage, isFileContentPart } from '@truefoundry/utils/core';
+import { extractErrorLogFields } from '@truefoundry/utils/core';
+import { createTurnRoute } from '../routes/turnRoutes';
+import type { ActiveTurnRegistry } from '../runtime/activeTurns';
+import type { McpStore } from '../store/McpStore';
+import type { ModelStore } from '../store/ModelStore';
+import { TENANT_NAME } from './sessions';
+
+export interface TurnsRouterDeps {
+  sessions: Sessions;
+  activeTurns: ActiveTurnRegistry;
+  modelStore: ModelStore;
+  mcpStore: McpStore;
+  /** Built at boot from SANDBOX_SETTINGS; undefined = sandbox unsupported. */
+  sandboxFactory?: TurnSandboxFactory;
+  logger: Logger;
+}
+
+/**
+ * Per-run resource wiring: maps the YAML catalogs onto the agentSession
+ * TurnResourceResolver. Models are served by one OpenAI-compatible API
+ * (models.yaml base_url); MCP servers resolve to url + env-configured headers;
+ * the sandbox factory (when configured) creates/reattaches the run's Sandbox.
+ */
+function createTurnResolver(deps: {
+  modelStore: ModelStore;
+  mcpStore: McpStore;
+  sandboxFactory?: TurnSandboxFactory;
+  logger: Logger;
+  signal: AbortSignal;
+}): TurnResourceResolver {
+  const { modelStore, mcpStore, logger, signal } = deps;
+  return new TurnResourceResolver({
+    llm: name =>
+      new OpenAILLM({
+        baseURL: modelStore.baseUrl,
+        apiKey: modelStore.getApiKey(name),
+        headers: modelStore.getHeaders(name),
+        logger,
+        signal,
+      }),
+    mcp: async name => {
+      const entry = mcpStore.get(name);
+      if (!entry) {
+        throw new Error(`MCP server not declared in mcp.yaml: ${name}`);
+      }
+      return { url: entry.url, headers: mcpStore.getHeaders(name) };
+    },
+    ...(deps.sandboxFactory ? { sandboxProvider: deps.sandboxFactory } : {}),
+    logger,
+  });
+}
+
+const MAX_SESSION_TITLE_LENGTH = 50;
+
+/**
+ * Derives a session title from the first user message of the first turn. Returns the
+ * trimmed text (capped at {@link MAX_SESSION_TITLE_LENGTH}) or `undefined` when no usable
+ * text is present (e.g. file-only or tool-approval input).
+ */
+function deriveSessionTitle(input: TurnInputItem[] | undefined): string | undefined {
+  const firstUserMessage = input?.find(isAgentInputUserMessage);
+  if (!firstUserMessage) {
+    return undefined;
+  }
+
+  const text =
+    typeof firstUserMessage.content === 'string'
+      ? firstUserMessage.content
+      : firstUserMessage.content
+          .filter(part => !isFileContentPart(part))
+          .map(part => part.text)
+          .join(' ');
+
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return undefined;
+  }
+  return trimmed.slice(0, MAX_SESSION_TITLE_LENGTH);
+}
+
+/**
+ * SSE payload for one turn event. The `id` field carries the per-stream
+ * sequence number; the event body itself is not numbered (yield order is
+ * persist order, so the transport boundary stamps).
+ */
+function turnEventSsePayload(event: TurnStreamingEvent, sequenceNumber: number): { id: string; data: string } {
+  return {
+    id: String(sequenceNumber),
+    data: JSON.stringify(event),
+  };
+}
+
+export function createTurnsRouter(deps: TurnsRouterDeps) {
+  const createTurnHandler: RouteHandler<typeof createTurnRoute> = async c => {
+    const { sessionId } = c.req.valid('param');
+    const body = c.req.valid('json');
+
+    const session = await deps.sessions.get({ tenant_name: TENANT_NAME, session_id: sessionId });
+    if (!session) {
+      return c.json({ error: { message: `Session not found: ${sessionId}` } }, 404);
+    }
+
+    // Starting a new turn supersedes the session's running turn, if any.
+    deps.activeTurns.cancelIfRunning({ sessionId, abortReason: CancellationReason.CancelledForNextTurn });
+
+    const abortController = new AbortController();
+    const resolver = createTurnResolver({
+      modelStore: deps.modelStore,
+      mcpStore: deps.mcpStore,
+      ...(deps.sandboxFactory ? { sandboxFactory: deps.sandboxFactory } : {}),
+      logger: deps.logger,
+      signal: abortController.signal,
+    });
+
+    // First turn only: derive the title from the first user message. The store
+    // never overwrites an existing title.
+    const title = session.record.last_turn_id ? undefined : deriveSessionTitle(body.input);
+
+    let turn;
+    try {
+      turn = await session.run({
+        ...(body.input !== undefined ? { input: body.input } : {}),
+        previous_turn_id: body.previous_turn_id,
+        signal: abortController.signal,
+        resolver,
+        ...(title !== undefined ? { update_session_title_if_not_exist: title } : {}),
+      });
+    } catch (error) {
+      // Unknown previous_turn_id (nothing was persisted).
+      if (error instanceof SessionStoreNotFoundError) {
+        return c.json({ error: { message: error.message } }, 404);
+      }
+      // Input/spec validation failures from the harness. MCP failures carry
+      // their own status but the wire contract only declares 400 here.
+      if (error instanceof AgentHarnessError && !(error instanceof McpConnectionError)) {
+        return c.json({ error: { message: error.message } }, 400);
+      }
+      throw error;
+    }
+
+    deps.activeTurns.register({ sessionId, turnId: turn.id, abortController });
+
+    // Buffer the run behind a Readable so a slow or disconnected client cannot
+    // stall execution; the SSE loop below drains it independently.
+    const generator = Readable.from(turn.stream(), { objectMode: true, highWaterMark: 128000 });
+
+    let shouldWriteToSSEStream = true;
+    let sequenceNumber = -1;
+    return streamSSE(c, async stream => {
+      // On client disconnect stop writing but keep draining, so the turn
+      // completes and its events persist.
+      stream.onAbort(() => {
+        shouldWriteToSSEStream = false;
+      });
+      try {
+        for await (const event of generator) {
+          sequenceNumber += 1;
+          if (!stream.closed && !stream.aborted && shouldWriteToSSEStream) {
+            try {
+              await stream.writeSSE(turnEventSsePayload(event, sequenceNumber));
+            } catch (error) {
+              deps.logger.error('SSE stream write error', extractErrorLogFields(error));
+              shouldWriteToSSEStream = false;
+            }
+          }
+        }
+      } catch (error) {
+        deps.logger.error('Unexpected error in turn SSE stream loop', extractErrorLogFields(error));
+      } finally {
+        deps.activeTurns.finish({ sessionId, turnId: turn.id });
+        await stream.close();
+      }
+    });
+  };
+
+  const router = new OpenAPIHono();
+  router.openapi(createTurnRoute, createTurnHandler);
+  // subscribeTurnRoute (routes/turnRoutes.ts) is defined but not registered:
+  // re-subscribing to a running turn needs a live-stream registry that this
+  // single-process server does not have yet.
+  return router;
+}

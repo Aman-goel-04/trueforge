@@ -1,0 +1,62 @@
+export type AgentHarnessErrorCode =
+  | 'invalid_agent_input'
+  | 'invalid_send_input'
+  | 'agent_sandbox_required'
+  | 'tool_name_collision'
+  | 'mcp_connection_failed'
+  | 'capability_state_error';
+
+export class AgentHarnessError extends Error {
+  constructor(
+    readonly code: AgentHarnessErrorCode,
+    message: string,
+    options?: ErrorOptions,
+  ) {
+    super(message, options);
+    this.name = 'AgentHarnessError';
+  }
+}
+
+export class InvalidAgentInputError extends AgentHarnessError {
+  constructor(message: string, options?: ErrorOptions) {
+    super('invalid_agent_input', message, options);
+    this.name = 'InvalidAgentInputError';
+  }
+}
+
+export class InvalidAgentSendInputError extends AgentHarnessError {
+  constructor(message: string, options?: ErrorOptions) {
+    super('invalid_send_input', message, options);
+    this.name = 'InvalidAgentSendInputError';
+  }
+}
+
+export class AgentSandboxRequiredError extends AgentHarnessError {
+  constructor(message: string, options?: ErrorOptions) {
+    super('agent_sandbox_required', message, options);
+    this.name = 'AgentSandboxRequiredError';
+  }
+}
+
+export class ToolNameCollisionError extends AgentHarnessError {
+  constructor(message: string, options?: ErrorOptions) {
+    super('tool_name_collision', message, options);
+    this.name = 'ToolNameCollisionError';
+  }
+}
+
+/**
+ * A remote MCP connection or tool call failed. Harness code can't throw the gateway's HTTPException,
+ * so it throws this instead and carries `statusCode` (401 auth, 403 tool, 400 selector, 502 transport)
+ * that the gateway boundary turns back into the right HTTP status.
+ */
+export class McpConnectionError extends AgentHarnessError {
+  constructor(
+    message: string,
+    readonly statusCode: number,
+    options?: ErrorOptions,
+  ) {
+    super('mcp_connection_failed', message, options);
+    this.name = 'McpConnectionError';
+  }
+}

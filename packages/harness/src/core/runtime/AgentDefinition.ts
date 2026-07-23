@@ -1,0 +1,25 @@
+import type { ILLM } from '../llm/ILLM';
+import type { LLMUserMessage } from '../llm/LLMTypes';
+import type { ResponseFormat } from '../llm/responseFormat';
+import type { IToolSet } from '../mcp/IMCPServer';
+
+export interface ModelParams {
+  [key: string]: unknown;
+}
+
+/**
+ * Static definition of an agent. Represents the authored configuration,
+ * not the execution state. Inherited by sub-agent definitions.
+ */
+export interface AgentDefinition {
+  model: string;
+  modelClient: ILLM;
+  instruction?: string | undefined;
+  messages?: readonly LLMUserMessage[] | undefined;
+  modelParams?: ModelParams | undefined;
+  /** Same wire shape as AgentSpec.response_format (Zod ResponseFormat). */
+  responseFormat?: ResponseFormat | undefined;
+  iterationLimit?: number | undefined;
+
+  toolSets?: readonly IToolSet[] | undefined;
+}

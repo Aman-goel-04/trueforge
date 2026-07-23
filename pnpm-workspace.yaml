@@ -1,0 +1,10 @@
+packages:
+  - packages/*
+
+minimumReleaseAge: 0
+trustLockfile: true
+confirmModulesPurge: false
+allowBuilds:
+  '@swc/core': true
+  esbuild: true
+  protobufjs: true

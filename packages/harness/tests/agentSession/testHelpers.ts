@@ -1,0 +1,177 @@
+import type { ITurnResourceResolver } from '../../src/agentSession/ITurnResourceResolver';
+import {
+  MAIN_THREAD_ID,
+  TURN_SERIALIZATION_VERSION,
+  type TurnRecord,
+} from '../../src/agentSession/models/TurnRecord';
+import { AgentSpecSchema, type AgentSpec } from '../../src/agentSession/schemas/agentSpec';
+import { TurnResourceResolver } from '../../src/agentSession/TurnResourceResolver';
+import type { AgentCapability } from '../../src/core/capabilities/AgentCapability';
+import { EventType, newEventId } from '../../src/core/events/eventSchemas';
+import type {
+  ExtendedChatCompletionChunk,
+  RawAssistantMessageWithUsage,
+} from '../../src/core/llm/LLMTypes';
+import { getEmptyUsage } from '../../src/core/llm/LLMTypes';
+import type { Sandbox } from '../../src/core/sandbox/Sandbox';
+import { makeMockILLM, makeSilentLogger } from '../core/harnessMocks';
+
+export { makeMockILLM, makeSilentLogger };
+
+/** Minimal AgentSpec for session/turn tests — interactive builtins off. */
+export function makeAgentSpec(
+  overrides: {
+    instructions?: string;
+    model?: { name: string };
+    config?: {
+      iteration_limit?: number;
+      sandbox?: { enabled: boolean; file_downloads?: boolean };
+      ask_user_questions?: { enabled?: boolean };
+      dynamic_sub_agents?: { enabled?: boolean };
+      generative_ui?: { enabled?: boolean };
+      context_management?: {
+        compaction?: { enabled?: boolean; compaction_threshold_tokens?: number };
+        large_tool_response?: { enabled?: boolean };
+      };
+    };
+  } = {},
+): AgentSpec {
+  return AgentSpecSchema.parse({
+    model: overrides.model ?? { name: 'test-model' },
+    instructions: overrides.instructions ?? 'You are a test agent.',
+    config: {
+      iteration_limit: 5,
+      ask_user_questions: { enabled: false },
+      dynamic_sub_agents: { enabled: false },
+      context_management: {
+        compaction: { enabled: false },
+        large_tool_response: { enabled: false },
+      },
+      ...overrides.config,
+    },
+  });
+}
+
+export async function* emptyLlmStream(): AsyncGenerator<
+  ExtendedChatCompletionChunk,
+  RawAssistantMessageWithUsage,
+  unknown
+> {
+  yield {
+    id: 'chunk-1',
+    object: 'chat.completion.chunk',
+    created: 0,
+    model: 'test-model',
+    choices: [{ index: 0, delta: { role: 'assistant', content: 'ok' }, finish_reason: 'stop' }],
+  } as ExtendedChatCompletionChunk;
+  return {
+    output: { role: 'assistant', content: 'ok' },
+    usage: getEmptyUsage(),
+    finish_reason: 'stop',
+  };
+}
+
+export function makeTestResolver<TTurnCustom extends object = Record<string, never>>(options?: {
+  extraCapabilities?: AgentCapability[];
+  sandbox?: Sandbox;
+  close?: () => Promise<void>;
+}): ITurnResourceResolver<TTurnCustom> {
+  const llm = makeMockILLM({
+    create: jest.fn().mockImplementation(() => emptyLlmStream()),
+  });
+  const base = new TurnResourceResolver<TTurnCustom>({
+    llm: () => llm,
+    mcp: async name => {
+      throw new Error(`unexpected mcp lookup: ${name}`);
+    },
+    logger: makeSilentLogger(),
+    ...(options?.sandbox
+      ? {
+          sandboxProvider: async () => {
+            if (!options.sandbox) {
+              throw new Error('sandbox missing');
+            }
+            return options.sandbox;
+          },
+        }
+      : {}),
+  });
+
+  if (!options?.extraCapabilities && !options?.close && !options?.sandbox) {
+    return base;
+  }
+
+  const wrapped: ITurnResourceResolver<TTurnCustom> = {
+    get logger() {
+      return base.logger;
+    },
+    createTracing: () => base.createTracing(),
+    resolveSandbox: input => base.resolveSandbox(input),
+    resolveAgentDefinition: async input => {
+      const resolved = await base.resolveAgentDefinition(input);
+      return {
+        ...resolved,
+        extraCapabilities: [...(resolved.extraCapabilities ?? []), ...(options?.extraCapabilities ?? [])],
+      };
+    },
+    close: async () => {
+      if (options?.close) {
+        await options.close();
+      }
+      await base.close();
+    },
+  };
+  return wrapped;
+}
+
+export function makeRunningTurnRecord(input: {
+  sessionId: string;
+  turnId: string;
+  previousTurnId?: string;
+  firstTurnId?: string;
+}): TurnRecord {
+  const now = new Date().toISOString();
+  return {
+    serialization_version: TURN_SERIALIZATION_VERSION,
+    turn_id: input.turnId,
+    session_id: input.sessionId,
+    first_turn_id: input.firstTurnId ?? input.turnId,
+    ancestor_ids: input.previousTurnId ? [input.previousTurnId] : [],
+    ...(input.previousTurnId !== undefined ? { previous_turn_id: input.previousTurnId } : {}),
+    state: { status: 'running' },
+    input: [],
+    snapshot: {
+      threads: {
+        [MAIN_THREAD_ID]: {
+          thread_id: MAIN_THREAD_ID,
+          context: [],
+          current_context_usage: getEmptyUsage(),
+        },
+      },
+    },
+    created_at: now,
+    updated_at: now,
+  };
+}
+
+export function makeTurnCreatedEvent(turnId: string) {
+  return {
+    type: 'turn.created' as const,
+    id: newEventId(),
+    turn_id: turnId,
+    previous_turn_id: null,
+    state: { status: 'running' as const },
+    created_at: new Date().toISOString(),
+    thread_id: null,
+  };
+}
+
+export function makeModelMessageEvent() {
+  return {
+    type: EventType.MODEL_MESSAGE,
+    id: newEventId(),
+    created_at: new Date().toISOString(),
+    thread_id: MAIN_THREAD_ID,
+    content: 'hi',
+  };
+}

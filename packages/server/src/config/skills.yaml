@@ -1,0 +1,10 @@
+# Agent skills, each a directory with a SKILL.md in a public git repository.
+#   url        - public git repository
+#   path       - directory containing SKILL.md (optional, repo root if omitted)
+#   reference  - commit SHA, tag or branch to pin (optional, default branch if omitted)
+skills:
+  - name: pr-review
+    url: https://github.com/acme/agent-skills
+    path: skills/pr-review
+    reference: v1.2.0
+    description: Reviews pull requests for style and correctness.

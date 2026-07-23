@@ -1,0 +1,105 @@
+/**
+ * Boot-time sandbox composition: parses `SANDBOX_SETTINGS` into the harness's
+ * provider-settings union, builds the provider once, and returns the per-run
+ * {@link TurnSandboxFactory} handed to TurnResourceResolver. Returns undefined
+ * when the server has no sandbox configuration — admission then rejects specs
+ * with `config.sandbox.enabled`.
+ *
+ * Called from main.ts so a malformed SANDBOX_SETTINGS aborts startup instead
+ * of failing mid-turn.
+ */
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+import type { Logger } from 'winston';
+import { ZodError } from 'zod';
+import type { TurnSandboxFactory } from '@truefoundry/utils/agent-session';
+import { createSandboxProvider, Sandbox, SandboxProviderSettingsSchema } from '@truefoundry/utils/core';
+import { TENANT_NAME } from '../apis/sessions';
+import configuration from '../config/config';
+
+// Python helpers ship with @truefoundry/utils under dist/sandbox-scripts.
+const require = createRequire(import.meta.url);
+const UTILS_ROOT = dirname(require.resolve('@truefoundry/utils/package.json'));
+const SCRIPTS_DIR = join(UTILS_ROOT, 'dist/sandbox-scripts');
+
+function loadSandboxScripts(): { mcpClient: string; skillDownloader: string } {
+  return {
+    mcpClient: readFileSync(join(SCRIPTS_DIR, 'mcp_client.py'), 'utf-8'),
+    skillDownloader: readFileSync(join(SCRIPTS_DIR, 'skill_downloader.py'), 'utf-8'),
+  };
+}
+
+function parseSandboxSettings(rawJson: string) {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(rawJson);
+  } catch (error) {
+    throw new Error(
+      `Environment variable SANDBOX_SETTINGS must be valid JSON: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+  // SANDBOX_API_KEY overrides an inline `apiKey` so the credential can stay out
+  // of the settings blob (mirrors the gateway's SANDBOX_API_KEY + SANDBOX_SETTINGS split).
+  const merged =
+    typeof raw === 'object' && raw !== null && !Array.isArray(raw)
+      ? { ...raw, ...(configuration.SANDBOX_API_KEY !== undefined ? { apiKey: configuration.SANDBOX_API_KEY } : {}) }
+      : raw;
+  try {
+    return SandboxProviderSettingsSchema.parse(merged);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw new Error(`Environment variable SANDBOX_SETTINGS is invalid: ${error.message}`, { cause: error });
+    }
+    throw error;
+  }
+}
+
+/**
+ * Builds the per-run sandbox factory from the environment, or undefined when
+ * sandbox is not configured. Throws on any misconfiguration.
+ */
+export function createServerSandboxFactory(deps: { logger: Logger }): TurnSandboxFactory | undefined {
+  if (configuration.SANDBOX_SETTINGS === undefined) {
+    if (configuration.SANDBOX_API_KEY !== undefined) {
+      throw new Error(
+        'SANDBOX_API_KEY is set but SANDBOX_SETTINGS is missing. ' +
+          'Set SANDBOX_SETTINGS (e.g. {"type":"daytona","snapshotName":"..."}) or unset SANDBOX_API_KEY.',
+      );
+    }
+    return undefined;
+  }
+
+  const settings = parseSandboxSettings(configuration.SANDBOX_SETTINGS);
+  const logger = deps.logger.child({ module: 'sandboxFactory' });
+  const provider = createSandboxProvider({
+    settings,
+    tenantName: TENANT_NAME,
+    fileMaxBytes: configuration.SANDBOX_FILE_MAX_BYTES,
+    previewUrlExpirySeconds: configuration.SANDBOX_PREVIEW_URL_EXPIRY_SECONDS,
+    logger,
+  });
+  const scripts = loadSandboxScripts();
+
+  // TODO(skills): wire the complete skills flow. Spec-declared skills (from
+  // skills.yaml) should be resolved to MountedSkill[] and passed as
+  // `mountedSkills`, with `skillInitEnv` carrying the credentials
+  // skill_downloader.py needs (TFY_HOST, TFY_API_KEY, TFY_AGENT_NAME) to
+  // download tarballs into the sandbox — mirroring the private gateway's
+  // sandboxComposition.ts. Until then sandbox sessions run without skills.
+  return async ({ spec, existingSandboxId, tracing }) =>
+    new Sandbox({
+      provider,
+      ...(existingSandboxId !== undefined ? { existingSandboxId } : {}),
+      fileDownloadEnabled: spec.config?.sandbox?.file_downloads ?? false,
+      blockDestructiveToolsInCodeMode: true,
+      scripts,
+      // Sandbox reads its tenant from TFY_TENANT_NAME (see Sandbox constructor)
+      // for the ownership check against provider-created sandbox ids
+      // (`<tenant>.<uuid>`). Must match the tenantName given to the provider.
+      execExtraEnv: { TFY_TENANT_NAME: TENANT_NAME },
+      tracing,
+      logger,
+    });
+}
