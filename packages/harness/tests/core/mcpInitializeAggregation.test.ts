@@ -1,5 +1,5 @@
-import type { MCPServerInitInfo } from '../../src/core/events/eventSchemas';
-import { EventType } from '../../src/core/events/eventSchemas';
+import type { MCPServerInitInfo } from '../../src/core/events/schema';
+import { EventType } from '../../src/core/events/schema';
 import type { AgentToolSchema, IToolSet, ListToolsResponse } from '../../src/core/mcp/IMCPServer';
 import { convertMCPServersToTools } from '../../src/core/mcp/convertMCPServers';
 import './harnessMocks';

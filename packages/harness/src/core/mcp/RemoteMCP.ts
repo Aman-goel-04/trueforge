@@ -1,7 +1,7 @@
 import type { CallToolRequest } from '@modelcontextprotocol/sdk/types.js';
 import type { Logger } from 'winston';
 import { McpConnectionError } from '../errors';
-import type { MCPServerInitInfo } from '../events/eventSchemas';
+import type { MCPServerInitInfo } from '../events/schema';
 import type { InternalToolCallInfo } from '../llm/LLMTypes';
 import type { AgentTracing } from '../tracing/AgentTracing';
 import { NOOP_AGENT_TRACING } from '../tracing/NoopAgentTracing';

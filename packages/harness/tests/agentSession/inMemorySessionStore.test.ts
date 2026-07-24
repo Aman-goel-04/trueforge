@@ -4,7 +4,7 @@ import { CancellationReason } from '../../src/agentSession/schemas/turn';
 import type { ISessionStore } from '../../src/agentSession/store/ISessionStore';
 import { InMemorySessionStore } from '../../src/agentSession/store/InMemorySessionStore';
 import { SessionStoreConflictError, SessionStoreNotFoundError } from '../../src/agentSession/store/SessionStoreErrors';
-import { EventType, newEventId } from '../../src/core/events/eventSchemas';
+import { EventType, newEventId } from '../../src/core/events/schema';
 import { getEmptyUsage } from '../../src/core/llm/LLMTypes';
 import { makeAgentSpec, makeModelMessageEvent, makeRunningTurnRecord, makeTurnCreatedEvent } from './testHelpers';
 
@@ -634,14 +634,20 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       const chainLength = ancestorWindow + 5;
       const ids = Array.from({ length: chainLength }, (_, i) => `t${String(i + 1)}`);
       for (let i = 0; i < ids.length; i++) {
+        const turnId = mustGet(ids[i], `ids[${String(i)}]`);
         const window = ids.slice(Math.max(0, i - ancestorWindow), i);
         await store.createTurn({
           tenant_name: tenant,
           turn: {
             ...makeRunningTurnRecord({
               sessionId,
-              turnId: ids[i]!,
-              ...(i > 0 ? { previousTurnId: ids[i - 1], firstTurnId: ids[0] } : {}),
+              turnId,
+              ...(i > 0
+                ? {
+                    previousTurnId: mustGet(ids[i - 1], `ids[${String(i - 1)}]`),
+                    firstTurnId: mustGet(ids[0], 'ids[0]'),
+                  }
+                : {}),
             }),
             ancestor_ids: window,
           },
@@ -649,11 +655,11 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
         await store.appendToEvents({
           tenant_name: tenant,
           session_id: sessionId,
-          turn_id: ids[i]!,
-          events: [makeTurnCreatedEvent(ids[i]!)],
+          turn_id: turnId,
+          events: [makeTurnCreatedEvent(turnId)],
         });
       }
-      const tip = ids.at(-1)!;
+      const tip = mustGet(ids.at(-1), 'chain tip');
       const { data } = await store.listSessionEvents({
         tenant_name: tenant,
         session_id: sessionId,

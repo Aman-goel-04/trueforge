@@ -3,7 +3,7 @@ import { MAIN_THREAD_ID, type TurnRecord } from '../../src/agentSession/models/T
 import { AgentSpecSchema, type AgentSpec } from '../../src/agentSession/schemas/agentSpec';
 import { TurnResourceResolver } from '../../src/agentSession/TurnResourceResolver';
 import type { AgentCapability } from '../../src/core/capabilities/AgentCapability';
-import { EventType, newEventId } from '../../src/core/events/eventSchemas';
+import { EventType, newEventId } from '../../src/core/events/schema';
 import type { ExtendedChatCompletionChunk, RawAssistantMessageWithUsage } from '../../src/core/llm/LLMTypes';
 import { getEmptyUsage } from '../../src/core/llm/LLMTypes';
 import type { Sandbox } from '../../src/core/sandbox/Sandbox';

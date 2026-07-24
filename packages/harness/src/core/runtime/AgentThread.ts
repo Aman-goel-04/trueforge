@@ -17,6 +17,7 @@ import type {
 import { SUB_AGENT_IDENTITY } from '../capabilities/builtins/DynamicSubAgents';
 import type { ToolResponseProcessor } from '../capabilities/ToolResponseProcessor';
 import { AgentHarnessError, InvalidAgentSendInputError } from '../errors';
+import type { RegisteredPassthroughEvent } from '../events/PassthroughEvents';
 import {
   EventType,
   newEventId,
@@ -36,8 +37,7 @@ import {
   type ToolResponseRequiredEvent,
   type UserToolApprovalMessage,
   type UserToolResponseMessage,
-} from '../events/eventSchemas';
-import type { RegisteredPassthroughEvent } from '../events/PassthroughEvents';
+} from '../events/schema';
 import { InstructionBuilder, ROOT_AGENT_IDENTITY } from '../InstructionBuilder';
 import {
   getEmptyUsage,

@@ -8,7 +8,7 @@ import {
   type ToolResponseEvent,
   type UserToolApprovalMessage,
   type UserToolResponseMessage,
-} from '../events/eventSchemas';
+} from '../events/schema';
 import { addMetrics, getEmptyMetric } from '../llm/metrics';
 import type { AgentExecutionTrace, AgentTracing } from '../tracing/AgentTracing';
 import { onSignalAbort } from '../util/abort';

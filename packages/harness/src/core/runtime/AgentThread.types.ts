@@ -24,7 +24,7 @@ import type {
   ToolResponseRequiredEvent,
   UserToolApprovalMessage,
   UserToolResponseMessage,
-} from '../events/eventSchemas';
+} from '../events/schema';
 import type {
   CompletionUsage,
   InternalEnrichedAssistantMessage,

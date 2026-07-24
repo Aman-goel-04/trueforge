@@ -4,6 +4,7 @@
  * event unions the store writes. SSE streaming envelopes stay in server/schemas.
  */
 import { z } from '@hono/zod-openapi';
+import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
 import {
   EventIdSchema,
   EventType as HarnessEventType,
@@ -16,8 +17,7 @@ import {
   ToolApprovalRequiredEventSchema,
   ToolResponseEventSchema,
   ToolResponseRequiredEventSchema,
-} from '../../core/events/eventSchemas';
-import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
+} from '../../core/events/schema';
 import {
   TurnInputItemSchema,
   TurnStateCancelledSchema,
@@ -89,7 +89,7 @@ export type SessionEvent = z.infer<typeof SessionEventSchema>;
  * passthrough events. Shared by append and list operations.
  */
 export type PersistedTurnEvent = WithRegisteredPassthrough<SessionEvent>;
-export type SessionEventItem = {
+export interface SessionEventItem {
   turn_id: string;
   event: PersistedTurnEvent;
-};
+}

@@ -1,4 +1,4 @@
-import type { MCPServerInitInfo, ThreadOverwriteContextEvent } from '../../core/events/eventSchemas';
+import type { MCPServerInitInfo, ThreadOverwriteContextEvent } from '../../core/events/schema';
 import type { CompletionUsage } from '../../core/llm/LLMTypes';
 import type {
   AgentThreadSnapshot,
@@ -25,68 +25,68 @@ export type UpdateSessionInput<TSessionCustom extends object = Record<string, ne
 > &
   Partial<Pick<SessionRecord<TSessionCustom>, 'agent_spec' | 'title'>>;
 
-export type GetSessionInput = {
+export interface GetSessionInput {
   tenant_name: string;
   session_id: string;
-};
+}
 
-export type ListSessionsInput = {
+export interface ListSessionsInput {
   tenant_name: string;
   limit: number;
   page_token?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
   start_timestamp?: string | undefined;
   end_timestamp?: string | undefined;
-};
+}
 
-export type CreateTurnInput<TTurnCustom extends object = Record<string, never>> = {
+export interface CreateTurnInput<TTurnCustom extends object = Record<string, never>> {
   tenant_name: string;
   turn: TurnRecord<TTurnCustom>;
   update_session_title_if_not_exist?: string | undefined;
-};
+}
 
-export type GetTurnInput = {
+export interface GetTurnInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
-};
+}
 
-export type ListTurnsInput = {
+export interface ListTurnsInput {
   tenant_name: string;
   session_id: string;
   limit: number;
   page_token?: string | undefined;
-};
+}
 
-export type UpdateTurnStateInput = {
+export interface UpdateTurnStateInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   state: TerminalTurnState;
-};
+}
 
-export type AppendToEventsInput = {
+export interface AppendToEventsInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   events: PersistedTurnEvent[];
-};
+}
 
-export type AddThreadsInput = {
+export interface AddThreadsInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   threads: AgentThreadSnapshot[];
-};
+}
 
-export type RemoveThreadsInput = {
+export interface RemoveThreadsInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   thread_ids: string[];
-};
+}
 
-export type AppendToThreadContextInput = {
+export interface AppendToThreadContextInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
@@ -94,54 +94,54 @@ export type AppendToThreadContextInput = {
   context: ContextMessage[];
   current_context_usage?: CompletionUsage | undefined;
   completion?: SubAgentCompletionMarker | undefined;
-};
+}
 
-export type OverwriteThreadContextInput = {
+export interface OverwriteThreadContextInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   event: ThreadOverwriteContextEvent;
-};
+}
 
-export type PatchMCPServersInput = {
+export interface PatchMCPServersInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   mcp_servers: MCPServerInitInfo[];
-};
+}
 
-export type PatchSandboxInfoInput = {
+export interface PatchSandboxInfoInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   sandbox_info: SandboxInfo;
-};
+}
 
-export type PatchThreadCapabilityStateInput = {
+export interface PatchThreadCapabilityStateInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   thread_id: string;
   key: string;
   state: unknown;
-};
+}
 
-export type ListTurnEventsInput = {
+export interface ListTurnEventsInput {
   tenant_name: string;
   session_id: string;
   turn_id: string;
   limit: number;
   page_token?: string | undefined;
   order?: 'asc' | 'desc' | undefined;
-};
+}
 
-export type ListSessionEventsInput = {
+export interface ListSessionEventsInput {
   tenant_name: string;
   session_id: string;
   limit: number;
   page_token?: string | undefined;
   last_turn_id?: string | undefined;
-};
+}
 
 /**
  * Session/turn persistence contract. Pure durability: no streaming, SSE, or

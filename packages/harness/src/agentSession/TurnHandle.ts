@@ -1,8 +1,8 @@
 /**
  * Durable turn handle. {@link TurnHandle.stream} is execute-once (persist-before-yield).
  */
-import type { MCPAuthRequiredEvent, ModelMessageDeltaEvent, ThreadDoneEvent } from '../core/events/eventSchemas';
-import { EventType as HarnessEventType, newEventId } from '../core/events/eventSchemas';
+import type { MCPAuthRequiredEvent, ModelMessageDeltaEvent, ThreadDoneEvent } from '../core/events/schema';
+import { EventType as HarnessEventType, newEventId } from '../core/events/schema';
 import { getEmptyUsage } from '../core/llm/LLMTypes';
 import { getEmptyMetric } from '../core/llm/metrics';
 import {
