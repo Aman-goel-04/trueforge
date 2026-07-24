@@ -74,26 +74,6 @@ export class InMemorySessionStore<
   private readonly sessions = new Map<string, StoredSession<TSessionCustom>>();
   private readonly turns = new Map<string, TurnRecord<TTurnCustom>>();
   private readonly events = new Map<string, StoredEvent[]>();
-  /** Per-session promise chain for atomic createTurn / updateTurnState. */
-  private readonly locks = new Map<string, Promise<void>>();
-
-  private async withLock<T>(key: string, fn: () => T | Promise<T>): Promise<T> {
-    const prev = this.locks.get(key) ?? Promise.resolve();
-    let release!: () => void;
-    const gate = new Promise<void>(resolve => {
-      release = resolve;
-    });
-    this.locks.set(
-      key,
-      prev.then(() => gate),
-    );
-    await prev;
-    try {
-      return await fn();
-    } finally {
-      release();
-    }
-  }
 
   async createSession(input: {
     tenant_name: string;
@@ -178,36 +158,37 @@ export class InMemorySessionStore<
     turn: TurnRecord<TTurnCustom>;
     update_session_title_if_not_exist?: string | undefined;
   }): Promise<void> {
+    // Atomicity is free here: this body is fully synchronous, so Node's
+    // run-to-completion guarantees it. Real backends must still use their own
+    // locking/transactions to satisfy the ISessionStore createTurn contract.
     const sKey = sessionKey(input.tenant_name, input.turn.session_id);
-    return this.withLock(sKey, () => {
-      const stored = this.sessions.get(sKey);
-      if (!stored) {
-        throw new SessionStoreNotFoundError(`Session not found: ${input.turn.session_id}`);
+    const stored = this.sessions.get(sKey);
+    if (!stored) {
+      throw new SessionStoreNotFoundError(`Session not found: ${input.turn.session_id}`);
+    }
+    const previousTurnId = input.turn.previous_turn_id;
+    if (previousTurnId !== undefined) {
+      const prevKey = turnKey(input.tenant_name, input.turn.session_id, previousTurnId);
+      if (!this.turns.has(prevKey)) {
+        throw new SessionStoreNotFoundError(`previous_turn_id not found in session: ${previousTurnId}`);
       }
-      const previousTurnId = input.turn.previous_turn_id;
-      if (previousTurnId !== undefined) {
-        const prevKey = turnKey(input.tenant_name, input.turn.session_id, previousTurnId);
-        if (!this.turns.has(prevKey)) {
-          throw new SessionStoreNotFoundError(`previous_turn_id not found in session: ${previousTurnId}`);
-        }
-      }
-      const tKey = turnKey(input.tenant_name, input.turn.session_id, input.turn.turn_id);
-      if (this.turns.has(tKey)) {
-        throw new SessionStoreConflictError(`Turn already exists: ${input.turn.turn_id}`);
-      }
-      this.turns.set(tKey, deepCopy(input.turn));
-      this.events.set(tKey, []);
-      stored.turnIds.push(input.turn.turn_id);
-      stored.record.last_turn_id = input.turn.turn_id;
-      stored.record.last_activity_timestamp_ms = Date.now();
-      stored.record.updated_at = new Date().toISOString();
-      if (
-        input.update_session_title_if_not_exist !== undefined &&
-        (stored.record.title === undefined || stored.record.title === null)
-      ) {
-        stored.record.title = input.update_session_title_if_not_exist;
-      }
-    });
+    }
+    const tKey = turnKey(input.tenant_name, input.turn.session_id, input.turn.turn_id);
+    if (this.turns.has(tKey)) {
+      throw new SessionStoreConflictError(`Turn already exists: ${input.turn.turn_id}`);
+    }
+    this.turns.set(tKey, deepCopy(input.turn));
+    this.events.set(tKey, []);
+    stored.turnIds.push(input.turn.turn_id);
+    stored.record.last_turn_id = input.turn.turn_id;
+    stored.record.last_activity_timestamp_ms = Date.now();
+    stored.record.updated_at = new Date().toISOString();
+    if (
+      input.update_session_title_if_not_exist !== undefined &&
+      (stored.record.title === undefined || stored.record.title === null)
+    ) {
+      stored.record.title = input.update_session_title_if_not_exist;
+    }
   }
 
   async getTurn(input: {
@@ -245,21 +226,19 @@ export class InMemorySessionStore<
     turn_id: string;
     state: TerminalTurnState;
   }): Promise<void> {
-    const sKey = sessionKey(input.tenant_name, input.session_id);
+    // Same as createTurn: synchronous body ⇒ atomic under run-to-completion.
     const tKey = turnKey(input.tenant_name, input.session_id, input.turn_id);
-    return this.withLock(sKey, () => {
-      const turn = this.turns.get(tKey);
-      if (!turn) {
-        throw new SessionStoreNotFoundError(`Turn not found: ${input.turn_id}`);
-      }
-      if (turn.state.status !== 'running') {
-        throw new SessionStoreConflictError(
-          `Turn ${input.turn_id} is already terminal (${turn.state.status}); first terminal write wins`,
-        );
-      }
-      turn.state = deepCopy(input.state);
-      turn.updated_at = new Date().toISOString();
-    });
+    const turn = this.turns.get(tKey);
+    if (!turn) {
+      throw new SessionStoreNotFoundError(`Turn not found: ${input.turn_id}`);
+    }
+    if (turn.state.status !== 'running') {
+      throw new SessionStoreConflictError(
+        `Turn ${input.turn_id} is already terminal (${turn.state.status}); first terminal write wins`,
+      );
+    }
+    turn.state = deepCopy(input.state);
+    turn.updated_at = new Date().toISOString();
   }
 
   async appendToEvents(input: {
