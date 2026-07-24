@@ -76,9 +76,9 @@ export {
   ToolResponseRequiredEventSchema,
   newEventId,
 } from './events/schema';
-export type { AgentThreadMetric } from './llm/metrics';
 export { InternalEventType } from './runtime/AgentThread.types';
 export type { AgentThreadSendBatch, ContextMessage } from './runtime/AgentThread.types';
+export type { AgentThreadMetrics } from './runtime/metrics';
 export type { SandboxInfo } from './sandbox/Sandbox';
 
 // Tracing

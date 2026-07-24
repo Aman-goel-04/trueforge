@@ -50,7 +50,6 @@ import {
   type LLMUserMessage,
   type RawAssistantMessage,
 } from '../llm/LLMTypes';
-import type { AgentThreadMetric } from '../llm/metrics';
 import { toOpenAIResponseFormat } from '../llm/responseFormat';
 import { toOpenAIChatMessage } from '../llm/toOpenAIChatMessage';
 import { estimateTokensForString, mergeUsage } from '../llm/usage';
@@ -91,6 +90,7 @@ import {
   toToolCallInfo,
 } from './contextUtils';
 import { DeferredTool } from './DeferredTool';
+import type { AgentThreadMetrics } from './metrics';
 import { getClosableOpenToolCallIds, OpenToolCallCloser } from './OpenToolCallCloser';
 import { isEmptyMessageContent, processAgentUserInput, type AgentInputUserMessage } from './UserInputMessage';
 
@@ -751,7 +751,7 @@ export class AgentThread {
     return base;
   }
 
-  public getAgentThreadMetrics(): AgentThreadMetric {
+  public getAgentThreadMetrics(): AgentThreadMetrics {
     return {
       iterations: this._iterations,
       total_tool_calls: this._totalToolCalls,

@@ -4,7 +4,6 @@
 import type { MCPAuthRequiredEvent, ModelMessageDeltaEvent, ThreadDoneEvent } from '../core/events/schema';
 import { EventType as HarnessEventType, newEventId } from '../core/events/schema';
 import { getEmptyUsage } from '../core/llm/LLMTypes';
-import { getEmptyMetric } from '../core/llm/metrics';
 import {
   InternalEventType,
   type AgentThreadExecutionEvent,
@@ -13,6 +12,7 @@ import {
   type InternalThreadDoneEvent,
 } from '../core/runtime/AgentThread.types';
 import type { AgentThreadOrchestrator } from '../core/runtime/AgentThreadOrchestrator';
+import { createEmptyAgentThreadMetrics } from '../core/runtime/metrics';
 import type { ITurnResourceResolver } from './ITurnResourceResolver';
 import type { TurnRecord } from './models/TurnRecord';
 import { EventType, type PersistedTurnEvent, type TurnCreatedEvent, type TurnDoneEvent } from './schemas/events';
@@ -211,7 +211,7 @@ export class TurnHandle<TTurnCustom extends object = Record<string, never>> {
         const emptyResult: AgentThreadExecutionResult = {
           output: null,
           required_actions: [],
-          metrics: { total: getEmptyMetric() },
+          metrics: { total: createEmptyAgentThreadMetrics() },
         };
         await generator.return(emptyResult);
       }
