@@ -1,4 +1,4 @@
-import { MAIN_THREAD_ID, TURN_SERIALIZATION_VERSION } from '../../src/agentSession/models/TurnRecord';
+import { MAIN_THREAD_ID } from '../../src/agentSession/models/TurnRecord';
 import { CancellationReason } from '../../src/agentSession/schemas/turn';
 import type { ISessionStore } from '../../src/agentSession/store/ISessionStore';
 import { InMemorySessionStore } from '../../src/agentSession/store/InMemorySessionStore';
@@ -597,6 +597,44 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
         }),
       ).rejects.toBeInstanceOf(SessionStoreNotFoundError);
     });
+
+    it('listSessionEvents spills through truncated ancestor_ids windows to reach the chain root', async () => {
+      const store = createStore();
+      await seedSession(store);
+      // Writer-chosen window shorter than the chain — store must spill.
+      const ancestorWindow = 3;
+      const chainLength = ancestorWindow + 5;
+      const ids = Array.from({ length: chainLength }, (_, i) => `t${String(i + 1)}`);
+      for (let i = 0; i < ids.length; i++) {
+        const window = ids.slice(Math.max(0, i - ancestorWindow), i);
+        await store.createTurn({
+          tenant_name: tenant,
+          turn: {
+            ...makeRunningTurnRecord({
+              sessionId,
+              turnId: ids[i]!,
+              ...(i > 0 ? { previousTurnId: ids[i - 1], firstTurnId: ids[0] } : {}),
+            }),
+            ancestor_ids: window,
+          },
+        });
+        await store.appendToEvents({
+          tenant_name: tenant,
+          session_id: sessionId,
+          turn_id: ids[i]!,
+          events: [makeTurnCreatedEvent(ids[i]!)],
+        });
+      }
+      const tip = ids.at(-1)!;
+      const { data } = await store.listSessionEvents({
+        tenant_name: tenant,
+        session_id: sessionId,
+        limit: chainLength + 10,
+        last_turn_id: tip,
+      });
+      // Full chain reachable despite truncated windows, newest first.
+      expect(data.map(row => row.turn_id)).toEqual([...ids].reverse());
+    });
   });
 
   describe('deep-copy boundary', () => {
@@ -616,11 +654,6 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       const keys = Object.getOwnPropertyNames(Object.getPrototypeOf(store)).concat(Object.keys(store));
       expect(keys.some(k => k.startsWith('subscribe'))).toBe(false);
     });
-  });
-
-  // Keep serialization_version visible in fixtures
-  it('turn records use TURN_SERIALIZATION_VERSION', () => {
-    expect(TURN_SERIALIZATION_VERSION).toBe(1);
   });
 }
 

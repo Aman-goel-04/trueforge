@@ -37,7 +37,7 @@ export { TokenPaginationSchema } from './schemas/pagination';
 export type { TokenPagination } from './schemas/pagination';
 
 export type { SessionRecord } from './models/SessionRecord';
-export { MAIN_THREAD_ID, TURN_SERIALIZATION_VERSION } from './models/TurnRecord';
+export { MAIN_THREAD_ID } from './models/TurnRecord';
 export type { TurnRecord, TurnSnapshot } from './models/TurnRecord';
 
 export { InMemorySessionStore } from './store/InMemorySessionStore';

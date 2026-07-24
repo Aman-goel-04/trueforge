@@ -18,10 +18,14 @@ export interface TurnSnapshot {
 }
 
 export interface TurnRecord<TCustom extends object = Record<string, never>> {
-  serialization_version: number;
   turn_id: string;
   session_id: string;
   first_turn_id: string;
+  /**
+   * Newest-last list of recent ancestor turn ids. Writers may truncate to a
+   * recent window; this need not reach the session root. Store readers that
+   * need the full chain spill through older turns' own `ancestor_ids`.
+   */
   ancestor_ids: string[];
   previous_turn_id?: string | undefined;
   state: TurnState;
@@ -31,6 +35,3 @@ export interface TurnRecord<TCustom extends object = Record<string, never>> {
   updated_at: string;
   custom?: TCustom | undefined;
 }
-
-/** Current serialization version for TurnRecord. */
-export const TURN_SERIALIZATION_VERSION = 1;

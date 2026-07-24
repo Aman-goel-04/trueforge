@@ -442,7 +442,7 @@ export class InMemorySessionStore<
       if (!anchor) {
         throw new SessionStoreNotFoundError(`Turn not found: ${input.last_turn_id}`);
       }
-      turnIds = [...anchor.ancestor_ids, anchor.turn_id];
+      turnIds = this.resolveAncestorChain(input.tenant_name, input.session_id, anchor);
     }
     const flattened: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[] = [];
     for (const turnId of turnIds) {
@@ -457,6 +457,27 @@ export class InMemorySessionStore<
     flattened.reverse();
     const page = paginate(flattened, input.limit, input.page_token);
     return { data: deepCopy(page.data), pagination: page.pagination };
+  }
+
+  /**
+   * Full chain (oldest first, anchor last). `ancestor_ids` may be only the
+   * previous N ancestors, so spill through the oldest ancestor's own window
+   * until a root or gap. A missing turn or repeated id ends the walk.
+   */
+  private resolveAncestorChain(tenant: string, sessionId: string, anchor: TurnRecord<TTurnCustom>): string[] {
+    const chain = [...anchor.ancestor_ids, anchor.turn_id];
+    const seen = new Set(chain);
+    let oldestId = chain[0];
+    while (oldestId && oldestId !== anchor.turn_id) {
+      const oldest = this.turns.get(turnKey(tenant, sessionId, oldestId));
+      if (!oldest) break;
+      const older = oldest.ancestor_ids.filter(id => !seen.has(id));
+      if (older.length === 0) break;
+      chain.unshift(...older);
+      for (const id of older) seen.add(id);
+      oldestId = older[0];
+    }
+    return chain;
   }
 }
 

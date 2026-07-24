@@ -230,8 +230,10 @@ export interface ISessionStore<
    * Includes events from **running** turns (the HTTP layer may 409 separately;
    * that is not store semantics). Ordering: newest-first across the flattened
    * feed. `last_turn_id` anchors the window to that turn plus its ancestors
-   * (the `ancestor_ids` chain, oldest first) — sibling branches from forks are
-   * excluded; omit to use the full session turn list.
+   * (oldest first). `ancestor_ids` may be only the previous N ancestors and
+   * need not reach the root — implementations that need the full chain must
+   * spill through older turns' own `ancestor_ids`. Sibling branches from forks
+   * are excluded; omit `last_turn_id` to use the full session turn list.
    */
   listSessionEvents(input: {
     tenant_name: string;

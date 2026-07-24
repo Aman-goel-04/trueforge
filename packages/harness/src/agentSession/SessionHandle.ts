@@ -17,13 +17,15 @@ import type { AgentTracing } from '../core/tracing/AgentTracing';
 import { builtinsFromSpec } from './builtinsFromSpec';
 import type { ITurnResourceResolver } from './ITurnResourceResolver';
 import type { SessionRecord } from './models/SessionRecord';
-import { MAIN_THREAD_ID, TURN_SERIALIZATION_VERSION, type TurnRecord } from './models/TurnRecord';
+import { MAIN_THREAD_ID, type TurnRecord } from './models/TurnRecord';
 import type { TurnCreatedEvent, TurnDoneEvent, TurnEvent } from './schemas/events';
 import type { TokenPagination } from './schemas/pagination';
 import type { TurnInputItem } from './schemas/turn';
 import type { ISessionStore } from './store/ISessionStore';
 import { TurnHandle } from './TurnHandle';
 
+/** How many recent ancestors SessionHandle persists on each turn. Store-local. */
+const MAX_TURN_ANCESTORS = 20;
 function resolvePreviousTurnId(
   requested: string | null | undefined,
   lastTurnId: string | undefined,
@@ -187,11 +189,11 @@ export class SessionHandle<
       const turnId = ulid().toLowerCase();
       const now = new Date().toISOString();
       const turnRecord: TurnRecord<TTurnCustom> = {
-        serialization_version: TURN_SERIALIZATION_VERSION,
         turn_id: turnId,
         session_id: this.session.session_id,
         first_turn_id: previous?.first_turn_id ?? turnId,
-        ancestor_ids: previous ? [...previous.ancestor_ids, previous.turn_id] : [],
+        // Truncate to a recent window; stores spill if they need older ancestors.
+        ancestor_ids: previous ? [...previous.ancestor_ids, previous.turn_id].slice(-MAX_TURN_ANCESTORS) : [],
         previous_turn_id: previousTurnId,
         state: { status: 'running' },
         input: input.input ?? [],
