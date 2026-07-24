@@ -4,7 +4,7 @@
  * the server fail at startup.
  */
 import { z } from 'zod';
-import { normalizeEnvName } from '../config/config';
+import { normalizeEnvName } from '../config';
 
 /** Adds a validation issue if two entries share a name. */
 function uniqueNames(entries: { name: string }[], ctx: z.RefinementCtx): void {

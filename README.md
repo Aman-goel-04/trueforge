@@ -16,6 +16,29 @@ pnpm test
 pnpm typecheck
 ```
 
+## Run the server
+
+Create the local environment and registry files from the tracked examples:
+
+```bash
+cp packages/server/src/.env.example packages/server/src/.env
+cp -R packages/server/registry-example packages/server/registry
+```
+
+Fill in `MODEL_API_KEY` in `packages/server/src/.env`, then start the server:
+
+```bash
+pnpm dev:server
+```
+
+To build and run it with Docker instead:
+
+```bash
+docker compose up --build
+```
+
+The local `.env` file and `packages/server/registry/` directory are ignored by Git. Docker Compose requires the environment file and mounts the registry read-only into the container.
+
 ## Library imports
 
 ```ts

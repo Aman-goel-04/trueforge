@@ -18,7 +18,7 @@ try {
     { createServerSandboxFactory },
   ] = await Promise.all([
     import('./app'),
-    import('./config/config'),
+    import('./config'),
     import('./store/ModelStore'),
     import('./store/McpStore'),
     import('./store/SkillStore'),

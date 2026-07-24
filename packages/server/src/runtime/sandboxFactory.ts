@@ -16,7 +16,7 @@ import { dirname, join } from 'node:path';
 import type { Logger } from 'winston';
 import { ZodError } from 'zod';
 import { TENANT_NAME } from '../apis/sessions';
-import configuration from '../config/config';
+import configuration from '../config';
 
 // Python helpers ship with @truefoundry/utils under dist/sandbox-scripts.
 const require = createRequire(import.meta.url);

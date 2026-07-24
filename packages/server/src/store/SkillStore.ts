@@ -1,7 +1,7 @@
 /**
  * Catalog of agent skills from skills.yaml (git-based skills).
  */
-import { CONFIG_FILES } from '../config/config';
+import { CONFIG_FILES } from '../config';
 import { loadYamlFile } from './loadYaml';
 import { SkillsFileSchema, type SkillEntry } from './schemas';
 

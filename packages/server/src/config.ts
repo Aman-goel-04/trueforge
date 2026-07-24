@@ -12,8 +12,8 @@ import path from 'node:path';
 // CONFIG FILES
 // ============================================================================
 
-/** Directory containing the YAML config files: `./config` relative to the working directory. */
-export const CONFIG_DIR = path.resolve('config');
+/** Directory containing the YAML config files: `./registry` relative to the working directory. */
+export const CONFIG_DIR = path.resolve('registry');
 
 /** YAML files the stores load from CONFIG_DIR at startup. */
 export const CONFIG_FILES = {
