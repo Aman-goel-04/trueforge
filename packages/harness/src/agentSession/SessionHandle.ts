@@ -18,7 +18,7 @@ import { builtinsFromSpec } from './builtinsFromSpec';
 import type { ITurnResourceResolver } from './ITurnResourceResolver';
 import type { SessionRecord } from './models/SessionRecord';
 import { MAIN_THREAD_ID, type TurnRecord } from './models/TurnRecord';
-import type { TurnCreatedEvent, TurnDoneEvent, TurnEvent } from './schemas/events';
+import type { SessionEventItem } from './schemas/events';
 import type { TokenPagination } from './schemas/pagination';
 import type { TurnInputItem } from './schemas/turn';
 import type { ISessionStore } from './store/ISessionStore';
@@ -279,7 +279,7 @@ export class SessionHandle<
     page_token?: string | undefined;
     last_turn_id?: string | undefined;
   }): Promise<{
-    data: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[];
+    data: SessionEventItem[];
     pagination: TokenPagination;
   }> {
     return this.store.listSessionEvents({

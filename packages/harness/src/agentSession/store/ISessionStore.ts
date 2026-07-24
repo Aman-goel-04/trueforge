@@ -9,10 +9,138 @@ import type {
 import type { SandboxInfo } from '../../core/sandbox/Sandbox';
 import type { SessionRecord } from '../models/SessionRecord';
 import type { TurnRecord } from '../models/TurnRecord';
-import type { AgentSpec } from '../schemas/agentSpec';
-import type { TurnCreatedEvent, TurnDoneEvent, TurnEvent } from '../schemas/events';
+import type { SessionEventItem, TurnCreatedEvent, TurnDoneEvent, TurnEvent } from '../schemas/events';
 import type { TokenPagination } from '../schemas/pagination';
 import type { TerminalTurnState } from '../schemas/turn';
+
+/** Caller-supplied fields for creating a session; the store owns timestamps and tip state. */
+export type CreateSessionInput<TSessionCustom extends object = Record<string, never>> = {
+  tenant_name: string;
+} & Pick<SessionRecord<TSessionCustom>, 'session_id' | 'agent_spec' | 'custom'>;
+
+/** PATCH fields for an existing session; omitted keys are left unchanged. */
+export type UpdateSessionInput<TSessionCustom extends object = Record<string, never>> = {
+  tenant_name: string;
+} & Pick<SessionRecord<TSessionCustom>, 'session_id'> &
+  Partial<Pick<SessionRecord<TSessionCustom>, 'agent_spec' | 'title'>>;
+
+export type GetSessionInput = {
+  tenant_name: string;
+  session_id: string;
+};
+
+export type ListSessionsInput = {
+  tenant_name: string;
+  limit: number;
+  page_token?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+  start_timestamp?: string | undefined;
+  end_timestamp?: string | undefined;
+};
+
+export type CreateTurnInput<TTurnCustom extends object = Record<string, never>> = {
+  tenant_name: string;
+  turn: TurnRecord<TTurnCustom>;
+  update_session_title_if_not_exist?: string | undefined;
+};
+
+export type GetTurnInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+};
+
+export type ListTurnsInput = {
+  tenant_name: string;
+  session_id: string;
+  limit: number;
+  page_token?: string | undefined;
+};
+
+export type UpdateTurnStateInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  state: TerminalTurnState;
+};
+
+export type AppendToEventsInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  events: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
+};
+
+export type AddThreadsInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  threads: AgentThreadSnapshot[];
+};
+
+export type RemoveThreadsInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  thread_ids: string[];
+};
+
+export type AppendToThreadContextInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  thread_id: string;
+  context: ContextMessage[];
+  current_context_usage?: CompletionUsage | undefined;
+  completion?: SubAgentCompletionMarker | undefined;
+};
+
+export type OverwriteThreadContextInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  event: ThreadOverwriteContextEvent;
+};
+
+export type PatchMCPServersInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  mcp_servers: MCPServerInitInfo[];
+};
+
+export type PatchSandboxInfoInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  sandbox_info: SandboxInfo;
+};
+
+export type PatchThreadCapabilityStateInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  thread_id: string;
+  key: string;
+  state: unknown;
+};
+
+export type ListTurnEventsInput = {
+  tenant_name: string;
+  session_id: string;
+  turn_id: string;
+  limit: number;
+  page_token?: string | undefined;
+  order?: 'asc' | 'desc' | undefined;
+};
+
+export type ListSessionEventsInput = {
+  tenant_name: string;
+  session_id: string;
+  limit: number;
+  page_token?: string | undefined;
+  last_turn_id?: string | undefined;
+};
 
 /**
  * Session/turn persistence contract. Pure durability: no streaming, SSE, or
@@ -30,12 +158,7 @@ export interface ISessionStore<
    * from it — callers do not pass a bare pointer through this API.
    * Sets `last_activity_timestamp_ms` (= now) on create.
    */
-  createSession(input: {
-    tenant_name: string;
-    session_id: string;
-    agent_spec: AgentSpec;
-    custom?: TSessionCustom | undefined;
-  }): Promise<void>;
+  createSession(input: CreateSessionInput<TSessionCustom>): Promise<void>;
 
   /**
    * MUST return SessionRecord with `agent_spec` fully hydrated, even if the backend
@@ -43,7 +166,7 @@ export interface ISessionStore<
    * and SessionHandle.run never resolve agents themselves.
    * Does **not** bump `last_activity_timestamp_ms` (read path).
    */
-  getSession(input: { tenant_name: string; session_id: string }): Promise<SessionRecord<TSessionCustom> | undefined>;
+  getSession(input: GetSessionInput): Promise<SessionRecord<TSessionCustom> | undefined>;
 
   /**
    * PATCH semantics — update only the provided fields:
@@ -52,12 +175,7 @@ export interface ISessionStore<
    * Bumps `last_activity_timestamp_ms` (= now). Same liveness rule applies to any
    * future session-update fields: update session ⇒ touch activity.
    */
-  updateSession(input: {
-    tenant_name: string;
-    session_id: string;
-    agent_spec?: AgentSpec | undefined;
-    title?: string | undefined;
-  }): Promise<void>;
+  updateSession(input: UpdateSessionInput<TSessionCustom>): Promise<void>;
 
   /**
    * Paginated list of the tenant's sessions ordered by `created_at`
@@ -65,14 +183,9 @@ export interface ISessionStore<
    * inclusive ISO-8601 bounds on `created_at`.
    * Does **not** bump `last_activity_timestamp_ms` (read path).
    */
-  listSessions(input: {
-    tenant_name: string;
-    limit: number;
-    page_token?: string | undefined;
-    order?: 'asc' | 'desc' | undefined;
-    start_timestamp?: string | undefined;
-    end_timestamp?: string | undefined;
-  }): Promise<{ data: SessionRecord<TSessionCustom>[]; pagination: TokenPagination }>;
+  listSessions(
+    input: ListSessionsInput,
+  ): Promise<{ data: SessionRecord<TSessionCustom>[]; pagination: TokenPagination }>;
 
   /**
    * Creates the turn AND advances `session.last_turn_id`.
@@ -97,26 +210,13 @@ export interface ISessionStore<
    * overwritten (first write wins). The caller derives the value; the store
    * only conditionally sets it.
    */
-  createTurn(input: {
-    tenant_name: string;
-    turn: TurnRecord<TTurnCustom>;
-    update_session_title_if_not_exist?: string | undefined;
-  }): Promise<void>;
+  createTurn(input: CreateTurnInput<TTurnCustom>): Promise<void>;
 
   /** Returns the turn record, or undefined if not found in this session. */
-  getTurn(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-  }): Promise<TurnRecord<TTurnCustom> | undefined>;
+  getTurn(input: GetTurnInput): Promise<TurnRecord<TTurnCustom> | undefined>;
 
   /** Paginated list of the session's turn records, stable ordering. */
-  listTurns(input: {
-    tenant_name: string;
-    session_id: string;
-    limit: number;
-    page_token?: string | undefined;
-  }): Promise<{ data: TurnRecord<TTurnCustom>[]; pagination: TokenPagination }>;
+  listTurns(input: ListTurnsInput): Promise<{ data: TurnRecord<TTurnCustom>[]; pagination: TokenPagination }>;
 
   /**
    * Writes the terminal state. Store contract — **first terminal write wins**:
@@ -128,12 +228,7 @@ export interface ISessionStore<
    * Check under the same concurrency control as other turn mutations (lock/CAS) —
    * not a racy read-then-write outside the critical section.
    */
-  updateTurnState(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    state: TerminalTurnState;
-  }): Promise<void>;
+  updateTurnState(input: UpdateTurnStateInput): Promise<void>;
 
   /**
    * Durable event log for the turn. MUST include lifecycle rows: a
@@ -142,83 +237,31 @@ export interface ISessionStore<
    * API persists lifecycle in the stream — implementations never synthesize
    * missing created/done rows on read.
    */
-  appendToEvents(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    events: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
-  }): Promise<void>;
+  appendToEvents(input: AppendToEventsInput): Promise<void>;
 
   /** Adds thread snapshots to the turn (sub-agent spawns). */
-  addThreads(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    threads: AgentThreadSnapshot[];
-  }): Promise<void>;
+  addThreads(input: AddThreadsInput): Promise<void>;
 
   /** Removes threads from the turn by id. */
-  removeThreads(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    thread_ids: string[];
-  }): Promise<void>;
+  removeThreads(input: RemoveThreadsInput): Promise<void>;
 
   /** Appends messages to a thread's context; optionally updates usage / completion marker. */
-  appendToThreadContext(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    thread_id: string;
-    context: ContextMessage[];
-    current_context_usage?: CompletionUsage | undefined;
-    completion?: SubAgentCompletionMarker | undefined;
-  }): Promise<void>;
+  appendToThreadContext(input: AppendToThreadContextInput): Promise<void>;
 
   /** Replaces a thread's context wholesale (context-overwrite event). */
-  overwriteThreadContext(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    event: ThreadOverwriteContextEvent;
-  }): Promise<void>;
+  overwriteThreadContext(input: OverwriteThreadContextInput): Promise<void>;
 
   /** Patches the turn snapshot's MCP server init info (by source id). */
-  patchMCPServers(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    mcp_servers: MCPServerInitInfo[];
-  }): Promise<void>;
+  patchMCPServers(input: PatchMCPServersInput): Promise<void>;
 
   /** Patches the turn snapshot's sandbox info (id for cross-turn reattach). */
-  patchSandboxInfo(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    sandbox_info: SandboxInfo;
-  }): Promise<void>;
+  patchSandboxInfo(input: PatchSandboxInfoInput): Promise<void>;
 
   /** Generic capability KV — store has zero Plan/feature knowledge. */
-  patchThreadCapabilityState(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    thread_id: string;
-    key: string;
-    state: unknown;
-  }): Promise<void>;
+  patchThreadCapabilityState(input: PatchThreadCapabilityStateInput): Promise<void>;
 
   /** Paginated read of one turn's persisted events, insertion order (asc default). */
-  listTurnEvents(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    limit: number;
-    page_token?: string | undefined;
-    order?: 'asc' | 'desc' | undefined;
-  }): Promise<{
+  listTurnEvents(input: ListTurnEventsInput): Promise<{
     data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
     pagination: TokenPagination;
   }>;
@@ -235,14 +278,8 @@ export interface ISessionStore<
    * spill through older turns' own `ancestor_ids`. Sibling branches from forks
    * are excluded; omit `last_turn_id` to use the full session turn list.
    */
-  listSessionEvents(input: {
-    tenant_name: string;
-    session_id: string;
-    limit: number;
-    page_token?: string | undefined;
-    last_turn_id?: string | undefined;
-  }): Promise<{
-    data: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[];
+  listSessionEvents(input: ListSessionEventsInput): Promise<{
+    data: SessionEventItem[];
     pagination: TokenPagination;
   }>;
 }

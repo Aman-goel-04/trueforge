@@ -41,7 +41,27 @@ export { MAIN_THREAD_ID } from './models/TurnRecord';
 export type { TurnRecord, TurnSnapshot } from './models/TurnRecord';
 
 export { InMemorySessionStore } from './store/InMemorySessionStore';
-export type { ISessionStore } from './store/ISessionStore';
+export type {
+  AddThreadsInput,
+  AppendToEventsInput,
+  AppendToThreadContextInput,
+  CreateSessionInput,
+  CreateTurnInput,
+  GetSessionInput,
+  GetTurnInput,
+  ISessionStore,
+  ListSessionEventsInput,
+  ListSessionsInput,
+  ListTurnEventsInput,
+  ListTurnsInput,
+  OverwriteThreadContextInput,
+  PatchMCPServersInput,
+  PatchSandboxInfoInput,
+  PatchThreadCapabilityStateInput,
+  RemoveThreadsInput,
+  UpdateSessionInput,
+  UpdateTurnStateInput,
+} from './store/ISessionStore';
 export { SessionStoreConflictError, SessionStoreNotFoundError } from './store/SessionStoreErrors';
 
 export type { ITurnResourceResolver } from './ITurnResourceResolver';

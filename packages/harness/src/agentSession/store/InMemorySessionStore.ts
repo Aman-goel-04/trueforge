@@ -1,19 +1,29 @@
-import type { MCPServerInitInfo, ThreadOverwriteContextEvent } from '../../core/events/eventSchemas';
 import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
-import type { CompletionUsage } from '../../core/llm/LLMTypes';
-import type {
-  AgentThreadSnapshot,
-  ContextMessage,
-  SubAgentCompletionMarker,
-} from '../../core/runtime/AgentThread.types';
-import type { SandboxInfo } from '../../core/sandbox/Sandbox';
 import type { SessionRecord } from '../models/SessionRecord';
 import type { TurnRecord } from '../models/TurnRecord';
-import type { AgentSpec } from '../schemas/agentSpec';
-import type { TurnCreatedEvent, TurnDoneEvent, TurnEvent } from '../schemas/events';
+import type { SessionEventItem, TurnCreatedEvent, TurnDoneEvent, TurnEvent } from '../schemas/events';
 import type { TokenPagination } from '../schemas/pagination';
-import type { TerminalTurnState } from '../schemas/turn';
-import type { ISessionStore } from './ISessionStore';
+import type {
+  AddThreadsInput,
+  AppendToEventsInput,
+  AppendToThreadContextInput,
+  CreateSessionInput,
+  CreateTurnInput,
+  GetSessionInput,
+  GetTurnInput,
+  ISessionStore,
+  ListSessionEventsInput,
+  ListSessionsInput,
+  ListTurnEventsInput,
+  ListTurnsInput,
+  OverwriteThreadContextInput,
+  PatchMCPServersInput,
+  PatchSandboxInfoInput,
+  PatchThreadCapabilityStateInput,
+  RemoveThreadsInput,
+  UpdateSessionInput,
+  UpdateTurnStateInput,
+} from './ISessionStore';
 import { SessionStoreConflictError, SessionStoreNotFoundError } from './SessionStoreErrors';
 
 /* eslint-disable @typescript-eslint/require-await -- in-memory store is synchronous; methods stay async so thrown SessionStore*Error reject as Promises for ISessionStore callers */
@@ -75,12 +85,7 @@ export class InMemorySessionStore<
   private readonly turns = new Map<string, TurnRecord<TTurnCustom>>();
   private readonly events = new Map<string, StoredEvent[]>();
 
-  async createSession(input: {
-    tenant_name: string;
-    session_id: string;
-    agent_spec: AgentSpec;
-    custom?: TSessionCustom | undefined;
-  }): Promise<void> {
+  async createSession(input: CreateSessionInput<TSessionCustom>): Promise<void> {
     const key = sessionKey(input.tenant_name, input.session_id);
     if (this.sessions.has(key)) {
       throw new SessionStoreConflictError(`Session already exists: ${input.session_id}`);
@@ -99,20 +104,12 @@ export class InMemorySessionStore<
     return;
   }
 
-  async getSession(input: {
-    tenant_name: string;
-    session_id: string;
-  }): Promise<SessionRecord<TSessionCustom> | undefined> {
+  async getSession(input: GetSessionInput): Promise<SessionRecord<TSessionCustom> | undefined> {
     const stored = this.sessions.get(sessionKey(input.tenant_name, input.session_id));
     return stored ? deepCopy(stored.record) : undefined;
   }
 
-  async updateSession(input: {
-    tenant_name: string;
-    session_id: string;
-    agent_spec?: AgentSpec | undefined;
-    title?: string | undefined;
-  }): Promise<void> {
+  async updateSession(input: UpdateSessionInput<TSessionCustom>): Promise<void> {
     const key = sessionKey(input.tenant_name, input.session_id);
     const stored = this.sessions.get(key);
     if (!stored) {
@@ -129,14 +126,9 @@ export class InMemorySessionStore<
     return;
   }
 
-  async listSessions(input: {
-    tenant_name: string;
-    limit: number;
-    page_token?: string | undefined;
-    order?: 'asc' | 'desc' | undefined;
-    start_timestamp?: string | undefined;
-    end_timestamp?: string | undefined;
-  }): Promise<{ data: SessionRecord<TSessionCustom>[]; pagination: TokenPagination }> {
+  async listSessions(
+    input: ListSessionsInput,
+  ): Promise<{ data: SessionRecord<TSessionCustom>[]; pagination: TokenPagination }> {
     const prefix = `${input.tenant_name}:`;
     const records: SessionRecord<TSessionCustom>[] = [];
     for (const [key, stored] of this.sessions) {
@@ -153,11 +145,7 @@ export class InMemorySessionStore<
     return { data: deepCopy(page.data), pagination: page.pagination };
   }
 
-  async createTurn(input: {
-    tenant_name: string;
-    turn: TurnRecord<TTurnCustom>;
-    update_session_title_if_not_exist?: string | undefined;
-  }): Promise<void> {
+  async createTurn(input: CreateTurnInput<TTurnCustom>): Promise<void> {
     // Atomicity is free here: this body is fully synchronous, so Node's
     // run-to-completion guarantees it. Real backends must still use their own
     // locking/transactions to satisfy the ISessionStore createTurn contract.
@@ -191,21 +179,12 @@ export class InMemorySessionStore<
     }
   }
 
-  async getTurn(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-  }): Promise<TurnRecord<TTurnCustom> | undefined> {
+  async getTurn(input: GetTurnInput): Promise<TurnRecord<TTurnCustom> | undefined> {
     const turn = this.turns.get(turnKey(input.tenant_name, input.session_id, input.turn_id));
     return turn ? deepCopy(turn) : undefined;
   }
 
-  async listTurns(input: {
-    tenant_name: string;
-    session_id: string;
-    limit: number;
-    page_token?: string | undefined;
-  }): Promise<{ data: TurnRecord<TTurnCustom>[]; pagination: TokenPagination }> {
+  async listTurns(input: ListTurnsInput): Promise<{ data: TurnRecord<TTurnCustom>[]; pagination: TokenPagination }> {
     const stored = this.sessions.get(sessionKey(input.tenant_name, input.session_id));
     if (!stored) {
       throw new SessionStoreNotFoundError(`Session not found: ${input.session_id}`);
@@ -220,12 +199,7 @@ export class InMemorySessionStore<
     return paginate(records, input.limit, input.page_token);
   }
 
-  async updateTurnState(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    state: TerminalTurnState;
-  }): Promise<void> {
+  async updateTurnState(input: UpdateTurnStateInput): Promise<void> {
     // Same as createTurn: synchronous body ⇒ atomic under run-to-completion.
     const tKey = turnKey(input.tenant_name, input.session_id, input.turn_id);
     const turn = this.turns.get(tKey);
@@ -241,12 +215,7 @@ export class InMemorySessionStore<
     turn.updated_at = new Date().toISOString();
   }
 
-  async appendToEvents(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    events: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
-  }): Promise<void> {
+  async appendToEvents(input: AppendToEventsInput): Promise<void> {
     const tKey = turnKey(input.tenant_name, input.session_id, input.turn_id);
     const list = this.events.get(tKey);
     if (!list) {
@@ -264,12 +233,7 @@ export class InMemorySessionStore<
     return turn;
   }
 
-  async addThreads(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    threads: AgentThreadSnapshot[];
-  }): Promise<void> {
+  async addThreads(input: AddThreadsInput): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     for (const thread of input.threads) {
       turn.snapshot.threads[thread.thread_id] = deepCopy(thread);
@@ -278,12 +242,7 @@ export class InMemorySessionStore<
     return;
   }
 
-  async removeThreads(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    thread_ids: string[];
-  }): Promise<void> {
+  async removeThreads(input: RemoveThreadsInput): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     for (const id of input.thread_ids) {
       Reflect.deleteProperty(turn.snapshot.threads, id);
@@ -292,15 +251,7 @@ export class InMemorySessionStore<
     return;
   }
 
-  async appendToThreadContext(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    thread_id: string;
-    context: ContextMessage[];
-    current_context_usage?: CompletionUsage | undefined;
-    completion?: SubAgentCompletionMarker | undefined;
-  }): Promise<void> {
+  async appendToThreadContext(input: AppendToThreadContextInput): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     const thread = turn.snapshot.threads[input.thread_id];
     if (!thread) {
@@ -317,12 +268,7 @@ export class InMemorySessionStore<
     return;
   }
 
-  async overwriteThreadContext(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    event: ThreadOverwriteContextEvent;
-  }): Promise<void> {
+  async overwriteThreadContext(input: OverwriteThreadContextInput): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     const threadId = input.event.thread_id;
     const thread = turn.snapshot.threads[threadId];
@@ -335,12 +281,7 @@ export class InMemorySessionStore<
     return;
   }
 
-  async patchMCPServers(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    mcp_servers: MCPServerInitInfo[];
-  }): Promise<void> {
+  async patchMCPServers(input: PatchMCPServersInput): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     turn.snapshot.mcp_servers ??= {};
     for (const server of input.mcp_servers) {
@@ -350,26 +291,14 @@ export class InMemorySessionStore<
     return;
   }
 
-  async patchSandboxInfo(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    sandbox_info: SandboxInfo;
-  }): Promise<void> {
+  async patchSandboxInfo(input: PatchSandboxInfoInput): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     turn.snapshot.sandbox_info = deepCopy(input.sandbox_info);
     turn.updated_at = new Date().toISOString();
     return;
   }
 
-  async patchThreadCapabilityState(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    thread_id: string;
-    key: string;
-    state: unknown;
-  }): Promise<void> {
+  async patchThreadCapabilityState(input: PatchThreadCapabilityStateInput): Promise<void> {
     const turn = this.requireTurn(input.tenant_name, input.session_id, input.turn_id);
     const thread = turn.snapshot.threads[input.thread_id];
     if (!thread) {
@@ -381,14 +310,7 @@ export class InMemorySessionStore<
     return;
   }
 
-  async listTurnEvents(input: {
-    tenant_name: string;
-    session_id: string;
-    turn_id: string;
-    limit: number;
-    page_token?: string | undefined;
-    order?: 'asc' | 'desc' | undefined;
-  }): Promise<{
+  async listTurnEvents(input: ListTurnEventsInput): Promise<{
     data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
     pagination: TokenPagination;
   }> {
@@ -401,14 +323,8 @@ export class InMemorySessionStore<
     return { data: deepCopy(page.data), pagination: page.pagination };
   }
 
-  async listSessionEvents(input: {
-    tenant_name: string;
-    session_id: string;
-    limit: number;
-    page_token?: string | undefined;
-    last_turn_id?: string | undefined;
-  }): Promise<{
-    data: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[];
+  async listSessionEvents(input: ListSessionEventsInput): Promise<{
+    data: SessionEventItem[];
     pagination: TokenPagination;
   }> {
     const stored = this.sessions.get(sessionKey(input.tenant_name, input.session_id));
@@ -423,7 +339,7 @@ export class InMemorySessionStore<
       }
       turnIds = this.resolveAncestorChain(input.tenant_name, input.session_id, anchor);
     }
-    const flattened: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[] = [];
+    const flattened: SessionEventItem[] = [];
     for (const turnId of turnIds) {
       const evts = this.events.get(turnKey(input.tenant_name, input.session_id, turnId)) ?? [];
       for (const event of evts) {
