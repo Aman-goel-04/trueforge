@@ -27,11 +27,19 @@ export type { Session } from './schemas/session';
 export {
   EventType,
   SessionEventItemSchema,
+  SessionEventSchema,
   TurnCreatedEventSchema,
   TurnDoneEventSchema,
   TurnEventSchema,
 } from './schemas/events';
-export type { SessionEventItem, TurnCreatedEvent, TurnDoneEvent, TurnEvent } from './schemas/events';
+export type {
+  PersistedTurnEvent,
+  SessionEvent,
+  SessionEventItem,
+  TurnCreatedEvent,
+  TurnDoneEvent,
+  TurnEvent,
+} from './schemas/events';
 
 export { TokenPaginationSchema } from './schemas/pagination';
 export type { TokenPagination } from './schemas/pagination';

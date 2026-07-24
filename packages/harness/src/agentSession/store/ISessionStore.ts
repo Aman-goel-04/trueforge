@@ -1,5 +1,4 @@
 import type { MCPServerInitInfo, ThreadOverwriteContextEvent } from '../../core/events/eventSchemas';
-import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
 import type { CompletionUsage } from '../../core/llm/LLMTypes';
 import type {
   AgentThreadSnapshot,
@@ -9,7 +8,7 @@ import type {
 import type { SandboxInfo } from '../../core/sandbox/Sandbox';
 import type { SessionRecord } from '../models/SessionRecord';
 import type { TurnRecord } from '../models/TurnRecord';
-import type { SessionEventItem, TurnCreatedEvent, TurnDoneEvent, TurnEvent } from '../schemas/events';
+import type { PersistedTurnEvent, SessionEventItem } from '../schemas/events';
 import type { TokenPagination } from '../schemas/pagination';
 import type { TerminalTurnState } from '../schemas/turn';
 
@@ -70,7 +69,7 @@ export type AppendToEventsInput = {
   tenant_name: string;
   session_id: string;
   turn_id: string;
-  events: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
+  events: PersistedTurnEvent[];
 };
 
 export type AddThreadsInput = {
@@ -264,7 +263,7 @@ export interface ISessionStore<
 
   /** Paginated read of one turn's persisted events, insertion order (asc default). */
   listTurnEvents(input: ListTurnEventsInput): Promise<{
-    data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
+    data: PersistedTurnEvent[];
     pagination: TokenPagination;
   }>;
 

@@ -1,7 +1,6 @@
-import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
 import type { SessionRecord } from '../models/SessionRecord';
 import type { TurnRecord } from '../models/TurnRecord';
-import type { SessionEventItem, TurnCreatedEvent, TurnDoneEvent, TurnEvent } from '../schemas/events';
+import type { PersistedTurnEvent, SessionEventItem } from '../schemas/events';
 import type { TokenPagination } from '../schemas/pagination';
 import type {
   AddThreadsInput,
@@ -28,7 +27,7 @@ import { SessionStoreConflictError, SessionStoreNotFoundError } from './SessionS
 
 /* eslint-disable @typescript-eslint/require-await -- in-memory store is synchronous; methods stay async so thrown SessionStore*Error reject as Promises for ISessionStore callers */
 
-type StoredEvent = WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>;
+type StoredEvent = PersistedTurnEvent;
 
 interface StoredSession<TSessionCustom extends object> {
   record: SessionRecord<TSessionCustom>;
@@ -312,7 +311,7 @@ export class InMemorySessionStore<
   }
 
   async listTurnEvents(input: ListTurnEventsInput): Promise<{
-    data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
+    data: PersistedTurnEvent[];
     pagination: TokenPagination;
   }> {
     const list = this.events.get(turnKey(input.tenant_name, input.session_id, input.turn_id));
@@ -344,9 +343,7 @@ export class InMemorySessionStore<
     for (const turnId of turnIds) {
       const evts = this.events.get(turnKey(input.tenant_name, input.session_id, turnId)) ?? [];
       for (const event of evts) {
-        if (isSessionFeedEvent(event)) {
-          flattened.push({ turn_id: turnId, event });
-        }
+        flattened.push({ turn_id: turnId, event });
       }
     }
     // Newest first for session feed.
@@ -375,8 +372,4 @@ export class InMemorySessionStore<
     }
     return chain;
   }
-}
-
-function isSessionFeedEvent(event: StoredEvent): event is TurnCreatedEvent | TurnDoneEvent | TurnEvent {
-  return event.type === 'turn.created' || event.type === 'turn.done' || !('event' in event);
 }

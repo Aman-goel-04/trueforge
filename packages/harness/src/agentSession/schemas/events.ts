@@ -17,6 +17,7 @@ import {
   ToolResponseEventSchema,
   ToolResponseRequiredEventSchema,
 } from '../../core/events/eventSchemas';
+import type { WithRegisteredPassthrough } from '../../core/events/PassthroughEvents';
 import {
   TurnInputItemSchema,
   TurnStateCancelledSchema,
@@ -71,7 +72,7 @@ export const TurnEventSchema = z
   .openapi('TurnEvent');
 
 /** turn.created, turn.done, or a persisted turn event — no deltas. */
-const SessionEventSchema = z
+export const SessionEventSchema = z
   .discriminatedUnion('type', [TurnCreatedEventSchema, TurnDoneEventSchema, ...TurnEventSchema.options])
   .openapi('SessionEvent');
 
@@ -86,4 +87,13 @@ export const SessionEventItemSchema = z
 export type TurnCreatedEvent = z.infer<typeof TurnCreatedEventSchema>;
 export type TurnDoneEvent = z.infer<typeof TurnDoneEventSchema>;
 export type TurnEvent = z.infer<typeof TurnEventSchema>;
-export type SessionEventItem = z.infer<typeof SessionEventItemSchema>;
+export type SessionEvent = z.infer<typeof SessionEventSchema>;
+/**
+ * Durable turn event log entries: {@link SessionEvent} plus any registered
+ * passthrough events. Shared by append and list operations.
+ */
+export type PersistedTurnEvent = WithRegisteredPassthrough<SessionEvent>;
+export type SessionEventItem = {
+  turn_id: string;
+  event: PersistedTurnEvent;
+};

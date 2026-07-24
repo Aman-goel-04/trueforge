@@ -1,4 +1,5 @@
 import { MAIN_THREAD_ID } from '../../src/agentSession/models/TurnRecord';
+import type { PersistedTurnEvent } from '../../src/agentSession/schemas/events';
 import { CancellationReason } from '../../src/agentSession/schemas/turn';
 import type { ISessionStore } from '../../src/agentSession/store/ISessionStore';
 import { InMemorySessionStore } from '../../src/agentSession/store/InMemorySessionStore';
@@ -554,6 +555,32 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       });
       expect(data.map(row => row.turn_id)).toEqual(['t2', 't1']);
       expect(data.every(row => row.event.type === 'turn.created')).toBe(true);
+    });
+
+    it('listSessionEvents includes registered passthrough events', async () => {
+      const store = createStore();
+      await seedSession(store);
+      await store.createTurn({
+        tenant_name: tenant,
+        turn: makeRunningTurnRecord({ sessionId, turnId: 't1' }),
+      });
+      const passthrough = {
+        type: 'custom.event',
+        event: { value: 1 },
+      } as unknown as PersistedTurnEvent;
+      await store.appendToEvents({
+        tenant_name: tenant,
+        session_id: sessionId,
+        turn_id: 't1',
+        events: [passthrough],
+      });
+
+      const { data } = await store.listSessionEvents({
+        tenant_name: tenant,
+        session_id: sessionId,
+        limit: 10,
+      });
+      expect(data).toEqual([{ turn_id: 't1', event: passthrough }]);
     });
 
     it('listSessionEvents with last_turn_id scopes to that branch, excluding fork siblings', async () => {
