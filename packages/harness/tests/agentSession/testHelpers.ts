@@ -131,7 +131,7 @@ export function makeRunningTurnRecord(input: {
     session_id: input.sessionId,
     first_turn_id: input.firstTurnId ?? input.turnId,
     ancestor_ids: input.previousTurnId ? [input.previousTurnId] : [],
-    ...(input.previousTurnId !== undefined ? { previous_turn_id: input.previousTurnId } : {}),
+    previous_turn_id: input.previousTurnId,
     state: { status: 'running' },
     input: [],
     snapshot: {

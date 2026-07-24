@@ -113,7 +113,7 @@ export class InMemorySessionStore<
       created_at: now,
       updated_at: now,
       last_activity_timestamp_ms: Date.now(),
-      ...(input.custom !== undefined ? { custom: deepCopy(input.custom) } : {}),
+      custom: input.custom !== undefined ? deepCopy(input.custom) : undefined,
     };
     this.sessions.set(key, { record, turnIds: [] });
     return;

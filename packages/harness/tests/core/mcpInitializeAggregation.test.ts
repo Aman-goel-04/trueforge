@@ -13,7 +13,7 @@ function makeServer(params: {
   const base = makeMockIMCPServer({
     name: params.name,
     preload: true,
-    ...(params.tools !== undefined ? { tools: params.tools } : {}),
+    tools: params.tools,
   });
   return {
     ...base,

@@ -192,17 +192,17 @@ export class SessionHandle<
         session_id: this.session.session_id,
         first_turn_id: previous?.first_turn_id ?? turnId,
         ancestor_ids: previous ? [...previous.ancestor_ids, previous.turn_id] : [],
-        ...(previousTurnId !== undefined ? { previous_turn_id: previousTurnId } : {}),
+        previous_turn_id: previousTurnId,
         state: { status: 'running' },
         input: input.input ?? [],
         snapshot: {
           threads: threadsRecordFromMap(agentThreads),
-          ...(previous?.snapshot.mcp_servers !== undefined ? { mcp_servers: previous.snapshot.mcp_servers } : {}),
-          ...(previous?.snapshot.sandbox_info !== undefined ? { sandbox_info: previous.snapshot.sandbox_info } : {}),
+          mcp_servers: previous?.snapshot.mcp_servers,
+          sandbox_info: previous?.snapshot.sandbox_info,
         },
         created_at: now,
         updated_at: now,
-        ...(custom !== undefined ? { custom } : {}),
+        custom,
       };
 
       await this.store.createTurn({
@@ -272,7 +272,11 @@ export class SessionHandle<
    * turn.created / turn.done lifecycle events. Reads from the store only —
    * nothing is synthesized on read.
    */
-  async listEvents(input: { limit: number; page_token?: string; last_turn_id?: string }): Promise<{
+  async listEvents(input: {
+    limit: number;
+    page_token?: string | undefined;
+    last_turn_id?: string | undefined;
+  }): Promise<{
     data: { turn_id: string; event: TurnCreatedEvent | TurnDoneEvent | TurnEvent }[];
     pagination: TokenPagination;
   }> {

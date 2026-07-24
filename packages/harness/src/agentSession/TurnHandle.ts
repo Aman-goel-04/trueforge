@@ -296,7 +296,11 @@ export class TurnHandle<TTurnCustom extends object = Record<string, never>> {
   }
 
   /** Paginated read of this turn's persisted events. */
-  async listEvents(input: { limit: number; page_token?: string; order?: 'asc' | 'desc' }): Promise<{
+  async listEvents(input: {
+    limit: number;
+    page_token?: string | undefined;
+    order?: 'asc' | 'desc' | undefined;
+  }): Promise<{
     data: WithRegisteredPassthrough<TurnEvent | TurnCreatedEvent | TurnDoneEvent>[];
     pagination: TokenPagination;
   }> {

@@ -231,7 +231,7 @@ function buildModelMessageEvent({
   void thinking_blocks;
   const event: ModelMessageEvent = {
     ...rest,
-    ...(tool_calls !== undefined ? { tool_calls: tool_calls.map(toEnrichedToolCall) } : {}),
+    tool_calls: tool_calls?.map(toEnrichedToolCall),
     type: EventType.MODEL_MESSAGE,
     id,
     created_at: new Date().toISOString(),
