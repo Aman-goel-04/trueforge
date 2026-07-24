@@ -34,6 +34,7 @@ function runStoreContractSuite(createStore: () => ISessionStore) {
       await seedSession(store);
       const session = await store.getSession({ tenant_name: tenant, session_id: sessionId });
       expect(session).toBeDefined();
+      expect(mustGet(session).tenant_name).toBe(tenant);
       expect(mustGet(session).agent_spec.model.name).toBe('test-model');
       expect(mustGet(session).last_activity_timestamp_ms).toBeGreaterThanOrEqual(before);
       expect(mustGet(session).title).toBeNull();

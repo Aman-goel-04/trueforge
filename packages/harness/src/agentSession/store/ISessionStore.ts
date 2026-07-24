@@ -14,14 +14,16 @@ import type { TokenPagination } from '../schemas/pagination';
 import type { TerminalTurnState } from '../schemas/turn';
 
 /** Caller-supplied fields for creating a session; the store owns timestamps and tip state. */
-export type CreateSessionInput<TSessionCustom extends object = Record<string, never>> = {
-  tenant_name: string;
-} & Pick<SessionRecord<TSessionCustom>, 'session_id' | 'agent_spec' | 'custom'>;
+export type CreateSessionInput<TSessionCustom extends object = Record<string, never>> = Pick<
+  SessionRecord<TSessionCustom>,
+  'tenant_name' | 'session_id' | 'agent_spec' | 'custom'
+>;
 
 /** PATCH fields for an existing session; omitted keys are left unchanged. */
-export type UpdateSessionInput<TSessionCustom extends object = Record<string, never>> = {
-  tenant_name: string;
-} & Pick<SessionRecord<TSessionCustom>, 'session_id'> &
+export type UpdateSessionInput<TSessionCustom extends object = Record<string, never>> = Pick<
+  SessionRecord<TSessionCustom>,
+  'tenant_name' | 'session_id'
+> &
   Partial<Pick<SessionRecord<TSessionCustom>, 'agent_spec' | 'title'>>;
 
 export type GetSessionInput = {

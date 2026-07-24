@@ -92,6 +92,7 @@ export class InMemorySessionStore<
     }
     const now = new Date().toISOString();
     const record: SessionRecord<TSessionCustom> = {
+      tenant_name: input.tenant_name,
       session_id: input.session_id,
       agent_spec: deepCopy(input.agent_spec),
       title: null,

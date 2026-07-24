@@ -30,7 +30,6 @@ export class Sessions<
     }
     return new SessionHandle({
       store: this.store,
-      tenantName: input.tenant_name,
       session: record,
     });
   }
@@ -47,7 +46,6 @@ export class Sessions<
     }
     return new SessionHandle({
       store: this.store,
-      tenantName: input.tenant_name,
       session: record,
     });
   }

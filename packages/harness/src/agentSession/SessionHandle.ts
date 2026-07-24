@@ -65,16 +65,10 @@ export class SessionHandle<
   TTurnCustom extends object = Record<string, never>,
 > {
   private readonly store: ISessionStore<TSessionCustom, TTurnCustom>;
-  private readonly tenantName: string;
   private session: SessionRecord<TSessionCustom>;
 
-  constructor(options: {
-    store: ISessionStore<TSessionCustom, TTurnCustom>;
-    tenantName: string;
-    session: SessionRecord<TSessionCustom>;
-  }) {
+  constructor(options: { store: ISessionStore<TSessionCustom, TTurnCustom>; session: SessionRecord<TSessionCustom> }) {
     this.store = options.store;
-    this.tenantName = options.tenantName;
     this.session = options.session;
   }
 
@@ -83,7 +77,7 @@ export class SessionHandle<
   }
 
   get tenant_name(): string {
-    return this.tenantName;
+    return this.session.tenant_name;
   }
 
   get agent_spec() {
@@ -133,7 +127,7 @@ export class SessionHandle<
     const previousTurnId = resolvePreviousTurnId(input.previous_turn_id, this.session.last_turn_id);
     const previous = previousTurnId
       ? await this.store.getTurn({
-          tenant_name: this.tenantName,
+          tenant_name: this.tenant_name,
           session_id: this.session.session_id,
           turn_id: previousTurnId,
         })
@@ -208,13 +202,13 @@ export class SessionHandle<
       };
 
       await this.store.createTurn({
-        tenant_name: this.tenantName,
+        tenant_name: this.tenant_name,
         turn: turnRecord,
         update_session_title_if_not_exist: input.update_session_title_if_not_exist,
       });
 
       const refreshed = await this.store.getSession({
-        tenant_name: this.tenantName,
+        tenant_name: this.tenant_name,
         session_id: this.session.session_id,
       });
       if (refreshed) {
@@ -223,7 +217,7 @@ export class SessionHandle<
 
       return new TurnHandle({
         store: this.store,
-        tenantName: this.tenantName,
+        tenantName: this.tenant_name,
         turn: turnRecord,
         orchestrator,
         resolver: input.resolver,
@@ -242,7 +236,7 @@ export class SessionHandle<
   /** Returns the turn handle (store-backed; not executable), or undefined if not found. */
   async getTurn(turn_id: string): Promise<TurnHandle<TTurnCustom> | undefined> {
     const turn = await this.store.getTurn({
-      tenant_name: this.tenantName,
+      tenant_name: this.tenant_name,
       session_id: this.session.session_id,
       turn_id,
     });
@@ -251,7 +245,7 @@ export class SessionHandle<
     }
     return TurnHandle.fromRecord({
       store: this.store,
-      tenantName: this.tenantName,
+      tenantName: this.tenant_name,
       turn,
     });
   }
@@ -262,7 +256,7 @@ export class SessionHandle<
     page_token?: string | undefined;
   }): Promise<{ data: TurnRecord<TTurnCustom>[]; pagination: TokenPagination }> {
     return this.store.listTurns({
-      tenant_name: this.tenantName,
+      tenant_name: this.tenant_name,
       session_id: this.session.session_id,
       limit: input.limit,
       page_token: input.page_token,
@@ -283,7 +277,7 @@ export class SessionHandle<
     pagination: TokenPagination;
   }> {
     return this.store.listSessionEvents({
-      tenant_name: this.tenantName,
+      tenant_name: this.tenant_name,
       session_id: this.session.session_id,
       limit: input.limit,
       page_token: input.page_token,
