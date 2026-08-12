@@ -6,6 +6,7 @@ import { beforeAll, describe, expect, it, vi } from 'vitest';
 import { SaveAgentButton } from '@/atoms/SaveAgentButton.js';
 import { ServerProvider } from '@/server/ServerContext.js';
 import { ShellModeProvider, useShellMode } from '@/server/ShellModeContext.js';
+import type { SaveAgentResult } from '@/server/types.js';
 import { SlotsProvider } from '@/theme/SlotsProvider.js';
 import { RuntimeHarness } from '../containers/RuntimeHarness.js';
 import { createMockAgentUIServer } from '../server/mockServer.js';
@@ -41,7 +42,9 @@ beforeAll(() => {
 
 const startedMessages = [{ role: 'user' as const, content: 'hello', id: 'm1' }];
 
-function mockServer(saveAgent = vi.fn(async () => ({ ok: true }))) {
+type SaveAgentMock = ReturnType<typeof vi.fn<(...args: never[]) => Promise<SaveAgentResult>>>;
+
+function mockServer(saveAgent: SaveAgentMock = vi.fn(async () => ({ agentId: 'agt_1' }))) {
   return createMockAgentUIServer({ saveAgent });
 }
 
@@ -62,7 +65,7 @@ function renderSaveAgent({
   children: ReactNode;
   messages?: typeof startedMessages | [];
   agentConfig?: Parameters<typeof ShellModeProvider>[0]['agentConfig'];
-  saveAgent?: ReturnType<typeof vi.fn>;
+  saveAgent?: SaveAgentMock;
 }) {
   return render(
     <SlotsProvider>
@@ -108,7 +111,7 @@ describe('SaveAgentButton', () => {
   });
 
   it('opens a modal with name + system instructions and saves them on agentSpec', async () => {
-    const saveAgent = vi.fn(async () => ({ ok: true }));
+    const saveAgent = vi.fn(async () => ({ agentId: 'agt_1' }));
 
     renderSaveAgent({
       saveAgent,
@@ -149,7 +152,7 @@ describe('SaveAgentButton', () => {
   });
 
   it('binds the same draft chat as editable agent without remounting', async () => {
-    const saveAgent = vi.fn(async () => ({ ok: true }));
+    const saveAgent = vi.fn(async () => ({ agentId: 'agt_1' }));
     let shellSnap: ReturnType<typeof useShellMode> | undefined;
 
     function Probe() {
