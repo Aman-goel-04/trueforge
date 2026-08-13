@@ -1,8 +1,8 @@
 <p align="center">
   <a href="https://trueforge.dev">
     <picture>
-      <source srcset="./docs/assets/trueforge-black.svg" media="(prefers-color-scheme: dark)">
-      <source srcset="./docs/assets/trueforge-white.svg" media="(prefers-color-scheme: light)">
+      <source srcset="./docs/assets/trueforge-black.svg" media="(prefers-color-scheme: light)">
+      <source srcset="./docs/assets/trueforge-white.svg" media="(prefers-color-scheme: dark)">
       <img src="./docs/assets/trueforge-black.svg" alt="TrueForge logo">
     </picture>
   </a>
