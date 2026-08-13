@@ -7,7 +7,7 @@ import { SqliteMcpServerStore } from '../../../src/db/sqlite/mcp-server-store/Sq
 import { SqliteModelProviderStore } from '../../../src/db/sqlite/model-provider-store/SqliteModelProviderStore';
 import { SqliteSandboxProviderStore } from '../../../src/db/sqlite/sandbox-provider-store/SqliteSandboxProviderStore';
 import { SqliteSkillStore } from '../../../src/db/sqlite/skill-store/SqliteSkillStore';
-import { validateAgentSpec } from '../../../src/runtime/sessionResources';
+import { getModelDetails, validateAgentSpec } from '../../../src/runtime/sessionResources';
 import type { ReasoningEffort } from '../../../src/schemas/modelProvider';
 
 describe('validateAgentSpec', () => {
@@ -44,6 +44,20 @@ describe('validateAgentSpec', () => {
       sandboxProviderStore: new SqliteSandboxProviderStore(db),
     };
   }
+
+  it('maps the configured model output limit to runtime max_tokens', async () => {
+    const stores = await setup();
+
+    await expect(
+      getModelDetails({
+        tenant_id: TENANT_ID,
+        name: 'test-provider/test-model',
+        store: stores.modelProviderStore,
+      }),
+    ).resolves.toMatchObject({
+      defaultModelParams: { max_tokens: 4096 },
+    });
+  });
 
   it('rejects malformed model FQN with 422', async () => {
     const stores = await setup();

@@ -49,7 +49,7 @@ import { validateSandboxFilePath } from '../runtime/sandboxFilePath';
 import {
   buildTurnSandbox,
   getMcpConnection,
-  getModelProviderConfig,
+  getModelDetails,
   resolveGitSkills,
   resolveSandboxProvider,
 } from '../runtime/sessionResources';
@@ -141,16 +141,19 @@ function createTurnResolver(deps: {
   } = deps;
   return new TurnResourceResolver({
     llm: async name => {
-      const providerConfig = await getModelProviderConfig({
+      const { providerConfig, defaultModelParams } = await getModelDetails({
         tenant_id: TENANT_ID,
         name,
         store: modelProviderStore,
       });
-      return new VercelAILLM({
-        providerConfig,
-        logger,
-        signal,
-      });
+      return {
+        modelClient: new VercelAILLM({
+          providerConfig,
+          logger,
+          signal,
+        }),
+        defaultModelParams,
+      };
     },
     mcp: async name => {
       const connection = await getMcpConnection({
