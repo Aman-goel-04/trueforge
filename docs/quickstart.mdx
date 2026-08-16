@@ -18,6 +18,13 @@ TrueForge runs in [two modes](/introduction#two-ways-to-run-it): **local mode** 
 
     Then open [http://localhost:8790](http://localhost:8790). The defaults work out of the box — see the [FAQ](#faq) to change the port or data location.
 
+    <Warning>
+      Local (standalone) mode is meant for personal use on your own machine. It is not a production or internet-facing
+      setup — there is no login by default, and data lives in a local SQLite file. Please keep it on localhost. We
+      cannot take responsibility for data loss or unauthorized access if local mode is used beyond that. For a shared
+      deployment, use hosted mode below.
+    </Warning>
+
   </Tab>
   <Tab title="Hosted mode (Docker Compose)">
     Runs the full hosted topology on your machine: the server (UI + API), Postgres, and Redis.

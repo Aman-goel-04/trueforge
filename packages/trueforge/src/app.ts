@@ -33,6 +33,7 @@ import type { ISandboxProviderStore } from './db/sandboxProviderStore';
 import type { ISkillStore } from './db/skillStore';
 import type { WithTransaction } from './db/transaction';
 import type { IOAuthTokenStore } from './mcp/auth/types';
+import { PACKAGE_VERSION } from './packageVersion';
 import type { ActiveTurnRegistry } from './runtime/activeTurns';
 import type { EventSubscriptionRegistry } from './runtime/event-subscription';
 import { zodErrorResponse, zodValidationHook } from './zodErrorResponse';
@@ -70,7 +71,7 @@ const openApiDocConfig = {
       'or `Authorization: Bearer` ID token. There is no built-in API-key scheme; ' +
       'pass custom headers only if your reverse proxy or IdP layer requires them.\n\n' +
       'Covers DB-backed sessions, the agent registry, settings catalogs, and model/MCP/skill/sandbox providers.',
-    version: '0.1.0',
+    version: PACKAGE_VERSION,
   },
 };
 

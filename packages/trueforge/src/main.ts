@@ -36,7 +36,7 @@ import {
 import { RequestReplyExecutor, RequestReplyRouter } from '@truefoundry/trueforge-core/request-reply';
 import type { Transaction } from 'kysely';
 import type { RedisClientType } from 'redis';
-import winston, { type Logger } from 'winston';
+import type { Logger } from 'winston';
 
 import { createServerApp } from './app';
 import { initOidc } from './auth/oidc';
@@ -54,9 +54,12 @@ import type { ISkillStore } from './db/skillStore';
 import type { Database as SqliteDatabase } from './db/sqlite/types';
 import type { WithTransaction } from './db/transaction';
 import { mountFrontend } from './frontend';
+import { createServerLogger, shouldColorize } from './logger';
 import type { IOAuthTokenStore } from './mcp/auth/types';
+import { PACKAGE_VERSION } from './packageVersion';
 import { ActiveTurnRegistry } from './runtime/activeTurns';
 import { EventSubscriptionRegistry } from './runtime/event-subscription';
+import { printStandaloneStartupBanner } from './startupBanner';
 
 /** Persistence + optional Redis wired for the selected topology. */
 interface ServerPersistence<TTransaction> {
@@ -237,12 +240,17 @@ async function createServerRuntime<TTransaction>(persistence: ServerPersistence<
 }
 
 try {
-  // Console logger shared by the server runtime (harness components require one).
-  const logger = winston.createLogger({
+  const logger = createServerLogger({
     level: configuration.LOG_LEVEL,
-    format: winston.format.combine(winston.format.timestamp(), winston.format.json()),
-    transports: [new winston.transports.Console()],
+    standalone: configuration.STANDALONE,
+    version: PACKAGE_VERSION,
   });
+
+  if (configuration.STANDALONE) {
+    printStandaloneStartupBanner({ version: PACKAGE_VERSION, color: shouldColorize() });
+  } else {
+    logger.info('TrueForge starting', { mode: 'distributed' });
+  }
 
   const { activeTurns, app, destroyDb, redis, requestReplyRouter } = configuration.STANDALONE
     ? await createServerRuntime(
@@ -289,7 +297,7 @@ try {
   }
 
   const server = serve({ fetch: app.fetch, port: configuration.PORT }, info => {
-    console.log(`Agent server listening on http://localhost:${String(info.port)} (docs at /api/v1/docs)`);
+    logger.info(`Agent server listening on http://localhost:${String(info.port)} (docs at /api/v1/docs)`);
   });
 
   server.on('error', (error: unknown) => {

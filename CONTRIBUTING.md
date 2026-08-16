@@ -44,7 +44,7 @@ There are two dev topologies. Both serve the UI on [http://localhost:3000](http:
 
 ### Standalone (zero infra)
 
-SQLite only — good for most day-to-day development:
+SQLite only — good for most day-to-day development. Standalone mode is intended for local use; it is not a production-safe topology (no login by default, local SQLite). Please do not expose it beyond localhost.
 
 ```bash
 pnpm standalone:dev

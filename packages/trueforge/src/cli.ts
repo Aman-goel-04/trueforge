@@ -11,12 +11,15 @@
  */
 import { parseArgs } from 'node:util';
 
+import { PACKAGE_VERSION } from './packageVersion';
+
 function printUsage(): void {
   console.log(`Usage:
   npx @truefoundry/trueforge
   npx @truefoundry/trueforge --port <n>
 
-Start the agent server. Defaults to standalone mode (SQLite, no Redis).
+TrueForge v${PACKAGE_VERSION}. Start the agent server.
+Defaults to standalone mode (SQLite, no Redis) — local use only, not production-safe.
 Set STANDALONE=false with Postgres and Redis for multi-replica peering.
 
 Options:

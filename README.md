@@ -69,6 +69,8 @@ To work on TrueForge from this repository, see [CONTRIBUTING.md](CONTRIBUTING.md
 | Local  | Personal use, trying it out | SQLite   | None             | `npx @truefoundry/trueforge` |
 | Hosted | Teams, multi-replica        | Postgres | Postgres + Redis | Docker Compose or Helm       |
 
+> **Local mode is for your machine only.** It is a convenient way to try TrueForge — not a production or internet-facing setup. There is no login by default, and data lives in a local SQLite file. Please keep it on localhost. We cannot take responsibility for data loss or unauthorized access if local mode is used beyond that. For a shared or production deployment, use hosted mode.
+
 ## Documentation
 
 | Section                                                             | What you'll find                                                  |
