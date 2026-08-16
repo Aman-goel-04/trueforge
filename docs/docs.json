@@ -108,7 +108,7 @@
         "tab": "API Reference",
         "openapi": {
           "source": "./openapi.json",
-          "directory": "docs/api-reference"
+          "directory": "api-reference"
         }
       }
     ]
