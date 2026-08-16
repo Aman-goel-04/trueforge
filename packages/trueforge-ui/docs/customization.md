@@ -23,7 +23,7 @@ Prefer `theme={{ preset, mode, tokens, brand, icons, className, classNames }}`
 over hacking third-party CSS:
 
 ```tsx
-<TrueforgeUI
+<TrueForgeUI
   layout="sidebar"
   theme={{
     preset: 'claude',
@@ -88,7 +88,7 @@ function CenteredLayout({ className }: { className?: string }) {
   );
 }
 
-<TrueforgeUI layout={CenteredLayout} server={server} agentMode={…} />;
+<TrueForgeUI layout={CenteredLayout} server={server} agentMode={…} />;
 ```
 
 ## Restyle bubbles

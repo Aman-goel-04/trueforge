@@ -8,7 +8,7 @@ import type {
   DefinedSkill,
   SkillCatalogEntry,
 } from '@truefoundry/trueforge-ui';
-import { TrueforgeUI } from '@truefoundry/trueforge-ui';
+import { TrueForgeUI } from '@truefoundry/trueforge-ui';
 
 function MissingEnv({ missing }: { missing: string[] }) {
   return (
@@ -260,7 +260,7 @@ export default function App() {
 
   return (
     <div className="flex h-dvh min-h-0 w-full flex-1 flex-col">
-      <TrueforgeUI
+      <TrueForgeUI
         server={{
           type: 'truefoundry',
           apiKey,

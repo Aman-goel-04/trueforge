@@ -1,10 +1,10 @@
 import type { AgentUIServer, CatalogServer } from './types.js';
 
 /**
- * Built-in backends init inside `<TrueforgeUI />`.
+ * Built-in backends init inside `<TrueForgeUI />`.
  * Optional `catalog` is attached onto the resolved `AgentUIServer`.
  */
-export type TrueforgeBuiltInServerConfig =
+export type TrueForgeBuiltInServerConfig =
   | {
       type: 'truefoundry';
       apiKey: string;
@@ -24,7 +24,7 @@ export type TrueforgeBuiltInServerConfig =
     };
 
 /**
- * `server` prop for `<TrueforgeUI />`: a built-in config, or a ready
+ * `server` prop for `<TrueForgeUI />`: a built-in config, or a ready
  * {@link AgentUIServer} passed directly (no `{ type: "custom" }` wrapper).
  */
-export type TrueforgeServerConfig = TrueforgeBuiltInServerConfig | AgentUIServer;
+export type TrueForgeServerConfig = TrueForgeBuiltInServerConfig | AgentUIServer;

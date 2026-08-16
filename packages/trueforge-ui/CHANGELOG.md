@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- 2f08a99: Remember plain-draft composer choices (model, skills, MCP connectors, config) across New Chat and reloads via localStorage. Edit-flow and immutable library agents are unchanged. `TrueforgeUI` `layout` is optional and defaults to `"sidebar"`.
+- 2f08a99: Remember plain-draft composer choices (model, skills, MCP connectors, config) across New Chat and reloads via localStorage. Edit-flow and immutable library agents are unchanged. `TrueForgeUI` `layout` is optional and defaults to `"sidebar"`.
 - b56c003: Initial 0.1.0-rc.1 prerelease of all public packages.
 
 ### Patch Changes
@@ -20,7 +20,7 @@
 
 ### Minor Changes
 
-- 2f08a99: Remember plain-draft composer choices (model, skills, MCP connectors, config) across New Chat and reloads via localStorage. Edit-flow and immutable library agents are unchanged. `TrueforgeUI` `layout` is optional and defaults to `"sidebar"`.
+- 2f08a99: Remember plain-draft composer choices (model, skills, MCP connectors, config) across New Chat and reloads via localStorage. Edit-flow and immutable library agents are unchanged. `TrueForgeUI` `layout` is optional and defaults to `"sidebar"`.
 
 ### Patch Changes
 
@@ -83,8 +83,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   config choices are remembered (in-memory + `localStorage`) and seed the next
   New Chat after reload. Stale catalog entries are pruned once catalogs load.
   Edit-flow (`agentId` set) and immutable library agents are unchanged.
-- **Optional `layout`** — `<TrueforgeUI />` `layout` prop defaults to `"sidebar"`.
-- **`type: "trueforge"` built-in server** — `<TrueforgeUI server={{ type: 'trueforge', baseUrl?, token?, fetch? }} />`
+- **Optional `layout`** — `<TrueForgeUI />` `layout` prop defaults to `"sidebar"`.
+- **`type: "trueforge"` built-in server** — `<TrueForgeUI server={{ type: 'trueforge', baseUrl?, token?, fetch? }} />`
   resolves a full Harness `AgentUIServer` via
   `@truefoundry/trueforge-ui/plugins/trueforge-agent-server-adapter`
   (`createTrueForgeAgentUIServer`), including chat, builder, and default settings
@@ -164,9 +164,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Save Agent / welcome chrome key off `isMutable`, not draft|named.
   Hosts that inspected `mode.type` must switch to `mode.status` /
   `mode.isMutable` (see `shellIsMutable`).
-- **Renamed `TrueFoundryAssistantUI` → `TrueforgeUI`** (props type
-  `TrueFoundryAssistantUIProps` → `TrueforgeUIProps`). Update imports and JSX.
-- **`TrueforgeUI` agent props** — replaced top-level `agentName` and
+- **Renamed `TrueFoundryAssistantUI` → `TrueForgeUI`** (props type
+  `TrueFoundryAssistantUIProps` → `TrueForgeUIProps`). Update imports and JSX.
+- **`TrueForgeUI` agent props** — replaced top-level `agentName` and
   `defaultAgentSpec` with a single discriminated `agentConfig`. There is no
   compat shim; hosts must update call sites.
 - **Icons use Lucide** (`lucide-react`) instead of Font Awesome. Default
@@ -220,10 +220,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `CreateSandboxRequest`, `UpdateSandboxRequest`, `SandboxCatalogServer`.
   `apiKey` is never stored in the catalog and is optional on update (blank keeps
   the existing key).
-- `TrueforgeBuiltInServerConfig` exported for hosts that build the built-in
+- `TrueForgeBuiltInServerConfig` exported for hosts that build the built-in
   config separately.
 
-- **`agentConfig` shell modes** on `TrueforgeUI` /
+- **`agentConfig` shell modes** on `TrueForgeUI` /
   `ShellModeProvider`:
   - `SingleAgent` — locked named agent (`name` required)
   - `AgentLibrary` — Agents Library only; idle empty state until pick; no New Chat
@@ -259,8 +259,8 @@ import { TrueFoundryAssistantUI } from '@truefoundry/trueforge-ui';
 <TrueFoundryAssistantUI server={server} layout="sidebar" />;
 
 // After
-import { TrueforgeUI } from '@truefoundry/trueforge-ui';
-<TrueforgeUI server={server} layout="sidebar" />;
+import { TrueForgeUI } from '@truefoundry/trueforge-ui';
+<TrueForgeUI server={server} layout="sidebar" />;
 ```
 
 #### `agentConfig` (host must update)
@@ -282,12 +282,12 @@ import { TrueforgeUI } from '@truefoundry/trueforge-ui';
 />
 
 // After
-<TrueforgeUI
+<TrueForgeUI
   server={server}
   layout="sidebar"
   agentConfig={{ mode: "SingleAgent", name: "support-agent" }}
 />
-<TrueforgeUI
+<TrueForgeUI
   server={server}
   layout="sidebar"
   agentConfig={{
@@ -336,7 +336,7 @@ import { TrueforgeUI } from '@truefoundry/trueforge-ui';
 
 ### Added
 
-- `TrueforgeUI` quick-start component with `layout`: `sidebar` | `drawer` |
+- `TrueForgeUI` quick-start component with `layout`: `sidebar` | `drawer` |
   `dock` | `widget` (slots outside the chat provider so toast overrides apply).
 - Curated re-exports: `useAui`, `useAuiState`, `AssistantState` from the main
   barrel and `@truefoundry/trueforge-ui/assistant-ui`; `useTheme` from the main
@@ -368,7 +368,7 @@ import { TrueforgeUI } from '@truefoundry/trueforge-ui';
 - Font Awesome packages this SDK imports (`fontawesome-svg-core`,
   `free-solid-svg-icons`) moved to `dependencies`.
 - `SlotOverrides` is `Partial<AtomSlots>` only (no `Record<string, unknown>`).
-- `TrueforgeUI` lazy-layout `Suspense` fallback is a pulse skeleton
+- `TrueForgeUI` lazy-layout `Suspense` fallback is a pulse skeleton
   instead of blank.
 - README reordered: quick start (prefer `client`) before advanced sections.
 

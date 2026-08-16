@@ -458,7 +458,7 @@ Typical builder → draft patch shape (not the full `AgentSpec`):
 ```
 Host
   └─ createTrueFoundryServer / custom AgentUIServer
-TrueforgeUI({ server, agentConfig, … })
+TrueForgeUI({ server, agentConfig, … })
   ├─ builder UI ──► server.getModels / getSkills / getMcp / saveAgent
   └─ TrueFoundryChatProvider
         └─ useTrueFoundryAgentRuntime({
@@ -494,7 +494,7 @@ clients and delegates `createSession` / `createDraftSession`.
 
 ### Phase 2 — Wire `server` into UI shell (named)
 
-1. Extend `TrueFoundryChatProvider` / `TrueforgeUI`:
+1. Extend `TrueFoundryChatProvider` / `TrueForgeUI`:
    - prefer `server: AgentUIServer`
    - keep legacy `client` or `apiKey` + `baseUrl` temporarily
 2. When `server` is TFY-composed: resolve gateway clients → pass into existing
@@ -557,7 +557,7 @@ const server = createTrueFoundryServer({
   searchAgents: async () => [],
 });
 
-<TrueforgeUI
+<TrueForgeUI
   server={server}
   // omit agentConfig → AgentLibraryWithComposer (library + draft)
   // agentConfig={{ mode: "SingleAgent", name: "my-agent" }}
@@ -623,7 +623,7 @@ import type {
   AgentLibraryEntry,
 } from '@truefoundry/trueforge-ui';
 import {
-  TrueforgeUI,
+  TrueForgeUI,
   // TFY path still needs gateway clients for the unchanged runtime:
   AgentSessionClient,
   PrivateAgentSessionClient,
@@ -797,7 +797,7 @@ const server = createMyBackendServer({
 
 export function App() {
   return (
-    <TrueforgeUI
+    <TrueForgeUI
       server={server}
       agentConfig={{
         mode: 'AgentComposer',

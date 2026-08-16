@@ -3,7 +3,7 @@
 import { createTrueFoundryAgentUIServer } from '@truefoundry/assistant-ui-runtime/plugins/truefoundry-agent-server-adapter';
 import { useEffect, useState } from 'react';
 
-import type { TrueforgeBuiltInServerConfig, TrueforgeServerConfig } from '../server/TrueforgeServerConfig.js';
+import type { TrueForgeBuiltInServerConfig, TrueForgeServerConfig } from '../server/TrueForgeServerConfig.js';
 import type { AgentBuilderCapabilitiesResponse, AgentUIServer, CatalogServer } from '../server/types.js';
 
 export type ResolvedServerState =
@@ -20,7 +20,7 @@ const DEFAULT_CAPABILITIES = {
   },
 } satisfies AgentBuilderCapabilitiesResponse;
 
-function isBuiltInConfig(config: TrueforgeServerConfig): config is TrueforgeBuiltInServerConfig {
+function isBuiltInConfig(config: TrueForgeServerConfig): config is TrueForgeBuiltInServerConfig {
   return (
     typeof config === 'object' &&
     config !== null &&
@@ -45,7 +45,7 @@ function toAgentUIServer(server: object, catalog: CatalogServer | undefined): Ag
   const withCapabilities = { ...server, getCapabilities };
   const withCatalog = catalog != null ? { ...withCapabilities, catalog } : withCapabilities;
   if (!isAgentUIServer(withCatalog)) {
-    throw new Error('TrueforgeUI: runtime adapter returned an incomplete AgentUIServer');
+    throw new Error('TrueForgeUI: runtime adapter returned an incomplete AgentUIServer');
   }
   return withCatalog;
 }
@@ -71,13 +71,13 @@ function isAgentUIServer(value: object): value is AgentUIServer {
 }
 
 /**
- * Resolves a {@link TrueforgeServerConfig} to an {@link AgentUIServer}.
+ * Resolves a {@link TrueForgeServerConfig} to an {@link AgentUIServer}.
  * - `AgentUIServer` — sync passthrough
  * - `truefoundry` — async via `createTrueFoundryAgentUIServer`
  * - `trueforge` — via dynamic import of the Harness plugin adapter
  */
 export function useResolvedServer(
-  config: TrueforgeServerConfig,
+  config: TrueForgeServerConfig,
   onError?: (error: unknown) => void,
 ): ResolvedServerState {
   const builtIn = isBuiltInConfig(config) ? config : null;

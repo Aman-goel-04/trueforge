@@ -9,7 +9,7 @@ import { cn } from '../atoms/lib/cn.js';
 import { Spinner } from '../atoms/primitives/Spinner.js';
 import { ServerProvider } from '../server/ServerContext.js';
 import { DEFAULT_AGENT_CONFIG, ShellModeProvider, useShellMode, type AgentConfig } from '../server/ShellModeContext.js';
-import type { TrueforgeServerConfig } from '../server/TrueforgeServerConfig.js';
+import type { TrueForgeServerConfig } from '../server/TrueForgeServerConfig.js';
 import { SlotsProvider, type SlotOverrides } from '../theme/SlotsProvider.js';
 import type { LayoutProp, ThemeConfig } from '../theme/types.js';
 import { getErrorMessage } from '../utils/getErrorMessage.js';
@@ -24,13 +24,13 @@ const WidgetLayout = lazy(() => import('../layouts/WidgetLayout.js').then(m => (
 
 export type ChatLayout = 'sidebar' | 'drawer' | 'dock' | 'widget';
 export type { AgentConfig } from '../server/ShellModeContext.js';
-export type { TrueforgeBuiltInServerConfig, TrueforgeServerConfig } from '../server/TrueforgeServerConfig.js';
+export type { TrueForgeBuiltInServerConfig, TrueForgeServerConfig } from '../server/TrueForgeServerConfig.js';
 export type { LayoutProp } from '../theme/types.js';
 
 type RuntimeAdapters = NonNullable<UseTrueFoundryAgentRuntimeOptions['adapters']>;
 
-export type TrueforgeUIProps = {
-  server: TrueforgeServerConfig;
+export type TrueForgeUIProps = {
+  server: TrueForgeServerConfig;
   /** Built-in layout string or a custom layout component. Defaults to `"sidebar"`. */
   layout?: LayoutProp;
   overrides?: SlotOverrides;
@@ -194,7 +194,7 @@ function ChatProviderFromShell({
  * Quick-start assistant UI: slots + runtime + a built-in or custom layout.
  * Pass a built-in `server` config, a ready `AgentUIServer`, and optional `agentConfig`.
  */
-export function TrueforgeUI(props: TrueforgeUIProps) {
+export function TrueForgeUI(props: TrueForgeUIProps) {
   const isMcpAuthScreen =
     typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('screenType') === 'mcp-auth';
 
@@ -204,11 +204,11 @@ export function TrueforgeUI(props: TrueforgeUIProps) {
       <PostMcpOauthScreen />
     </SlotsProvider>
   ) : (
-    <TrueforgeUIShell {...props} />
+    <TrueForgeUIShell {...props} />
   );
 }
 
-function TrueforgeUIShell(props: TrueforgeUIProps) {
+function TrueForgeUIShell(props: TrueForgeUIProps) {
   const {
     layout = 'sidebar',
     overrides,

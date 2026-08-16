@@ -50,7 +50,7 @@ const sdk = await import('@truefoundry/trueforge-ui');
 const assistantUi = await import('@truefoundry/trueforge-ui/assistant-ui');
 const trueforgeAdapter = await import('@truefoundry/trueforge-ui/plugins/trueforge-agent-server-adapter');
 
-assert.equal(typeof sdk.TrueforgeUI, 'function');
+assert.equal(typeof sdk.TrueForgeUI, 'function');
 assert.equal(typeof sdk.createTrueFoundryServer, 'function');
 assert.equal(typeof sdk.useMCPAuth, 'function');
 assert.equal(typeof assistantUi.useAui, 'function');

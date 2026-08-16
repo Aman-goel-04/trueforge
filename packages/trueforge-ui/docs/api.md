@@ -11,9 +11,9 @@ like `Button` / `IconButton` are styled via theme tokens / CSS (not
 
 | Export                           | Notes                                                                                |
 | -------------------------------- | ------------------------------------------------------------------------------------ |
-| `TrueforgeUI`                    | Slots + runtime + built-in layout                                                    |
-| `TrueforgeUIProps`, `ChatLayout` | Props / layout union                                                                 |
-| `TrueforgeServerConfig`          | `server` prop: `type: "truefoundry"` \| `type: "trueforge"` \| ready `AgentUIServer` |
+| `TrueForgeUI`                    | Slots + runtime + built-in layout                                                    |
+| `TrueForgeUIProps`, `ChatLayout` | Props / layout union                                                                 |
+| `TrueForgeServerConfig`          | `server` prop: `type: "truefoundry"` \| `type: "trueforge"` \| ready `AgentUIServer` |
 
 ### Built-in servers
 
@@ -27,16 +27,16 @@ TrueForge hosts need `@truefoundry/trueforge-sdk`. Cookie apps pass `fetch`; emb
 
 ```tsx
 // Harness / TrueForge
-<TrueforgeUI
+<TrueForgeUI
   server={{ type: 'trueforge', baseUrl: '/', token: process.env.TRUEFORGE_TOKEN }}
   layout="sidebar"
 />
 
 // Or same-origin cookies:
-<TrueforgeUI server={{ type: 'trueforge', fetch: authAwareFetch }} layout="sidebar" />
+<TrueForgeUI server={{ type: 'trueforge', fetch: authAwareFetch }} layout="sidebar" />
 ```
 
-Factory without `<TrueforgeUI />`:
+Factory without `<TrueForgeUI />`:
 
 ```ts
 import { createTrueForgeAgentUIServer } from '@truefoundry/trueforge-ui/plugins/trueforge-agent-server-adapter';

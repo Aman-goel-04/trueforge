@@ -40,7 +40,7 @@ function MyWelcome({ heading = 'Welcome' }: WelcomeScreenProps) {
 ```
 
 Nested providers fall through to parent overrides, then `defaultSlots`.
-Quick start: `TrueforgeUI` mounts `SlotsProvider` outside the chat
+Quick start: `TrueForgeUI` mounts `SlotsProvider` outside the chat
 provider. See [customization.md](./customization.md) for the keep-list.
 
 ## Theming

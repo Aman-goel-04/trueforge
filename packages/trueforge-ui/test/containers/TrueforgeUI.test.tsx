@@ -54,7 +54,7 @@ vi.mock('@/plugins/trueforge-agent-server-adapter/index.js', () => ({
   ),
 }));
 
-import { TrueforgeUI, type ChatLayout } from '@/containers/TrueforgeUI.js';
+import { TrueForgeUI, type ChatLayout } from '@/containers/TrueForgeUI.js';
 import { DrawerLayout } from '@/layouts/DrawerLayout.js';
 import { SidebarLayout } from '@/layouts/SidebarLayout.js';
 import { StackChatPanel } from '@/layouts/StackChatPanel.js';
@@ -81,13 +81,13 @@ beforeAll(() => {
   };
 });
 
-describe('TrueforgeUI', () => {
+describe('TrueForgeUI', () => {
   const server = mockServer();
   const layouts: ChatLayout[] = ['sidebar', 'drawer', 'dock', 'widget'];
 
   it.each(layouts)('mounts layout=%s without crashing', async layout => {
     const { container } = render(
-      <TrueforgeUI
+      <TrueForgeUI
         server={server}
         agentConfig={{ mode: 'SingleAgent', name: 'my-agent' }}
         layout={layout}
@@ -126,7 +126,7 @@ describe('TrueforgeUI', () => {
     }
 
     render(
-      <TrueforgeUI
+      <TrueForgeUI
         server={server}
         agentConfig={{ mode: 'SingleAgent', name: 'my-agent' }}
         layout={CustomLayout}
@@ -154,7 +154,7 @@ describe('TrueforgeUI', () => {
     const getMcp = vi.fn(async () => []);
 
     render(
-      <TrueforgeUI
+      <TrueForgeUI
         server={createMockAgentUIServer({ getCapabilities, getModels, getSkills, getMcp })}
         agentConfig={{ mode: 'AgentComposer' }}
         layout="sidebar"
@@ -195,7 +195,7 @@ describe('TrueforgeUI', () => {
     const getSkills = vi.fn(async () => [{ id: 'research', name: 'Research' }]);
 
     render(
-      <TrueforgeUI
+      <TrueForgeUI
         server={createMockAgentUIServer({ getModels, getMcp, getSkills })}
         agentConfig={{ mode: 'AgentComposer' }}
         layout="sidebar"
@@ -236,7 +236,7 @@ describe('TrueforgeUI', () => {
     let unmount: (() => void) | undefined;
     try {
       const view = render(
-        <TrueforgeUI
+        <TrueForgeUI
           server={server}
           agentConfig={{ mode: 'SingleAgent', name: 'my-agent' }}
           layout={() => <div data-testid="regular-layout">regular chrome</div>}
@@ -254,7 +254,7 @@ describe('TrueforgeUI', () => {
   });
 
   it('resolves type trueforge and mounts the layout', async () => {
-    render(<TrueforgeUI server={{ type: 'trueforge', token: 'tok' }} layout="sidebar" className="h-96" />);
+    render(<TrueForgeUI server={{ type: 'trueforge', token: 'tok' }} layout="sidebar" className="h-96" />);
 
     await waitFor(() => {
       expect(screen.queryByRole('status', { name: 'Loading' })).not.toBeInTheDocument();
@@ -264,7 +264,7 @@ describe('TrueforgeUI', () => {
 
   it('shows a loader while truefoundry server init is pending', () => {
     render(
-      <TrueforgeUI
+      <TrueForgeUI
         server={{
           type: 'truefoundry',
           apiKey: 'k',

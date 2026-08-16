@@ -93,7 +93,7 @@ const expectedRuntimeExports: Array<keyof typeof sdk> = [
   'ToolGroupCard',
   'ToolGroupContainer',
   'TrueFoundryChatProvider',
-  'TrueforgeUI',
+  'TrueForgeUI',
   'USER_MESSAGE_ATTACHMENT_PREVIEW_REM',
   'UserEditComposerContainer',
   'UserMessageActionBar',

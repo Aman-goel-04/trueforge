@@ -50,7 +50,7 @@ the pnpm workspace root.
 
 Open the URL Vite prints (usually `http://localhost:5173`).
 
-The demo uses `server={{ type: "truefoundry", … }}` so `<TrueforgeUI />` builds
+The demo uses `server={{ type: "truefoundry", … }}` so `<TrueForgeUI />` builds
 the agent UI server from the control plane + API key (same path as production
 TrueFoundry hosts). Pass `agentConfig` to pick shell mode (see `src/App.tsx`).
 Default mode is **AgentLibraryWithComposer**. Change `VITE_TFY_AGENT_MODE` to

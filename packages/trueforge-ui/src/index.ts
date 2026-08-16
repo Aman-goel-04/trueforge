@@ -175,13 +175,13 @@ export { ToolCallContainer } from './containers/ToolCallContainer.js';
 export { ToolCallContentBlockContainer } from './containers/ToolCallContentBlockContainer.js';
 export { ToolGroupContainer } from './containers/ToolGroupContainer.js';
 export type { ThreadGroupPart } from './containers/ToolGroupContainer.js';
-export { TrueforgeUI } from './containers/TrueforgeUI.js';
+export { TrueForgeUI } from './containers/TrueForgeUI.js';
 export type {
   ChatLayout,
-  TrueforgeBuiltInServerConfig,
-  TrueforgeServerConfig,
-  TrueforgeUIProps,
-} from './containers/TrueforgeUI.js';
+  TrueForgeBuiltInServerConfig,
+  TrueForgeServerConfig,
+  TrueForgeUIProps,
+} from './containers/TrueForgeUI.js';
 export { TrueFoundryChatProvider } from './containers/TrueFoundryChatProvider.js';
 export type { TrueFoundryChatProviderProps } from './containers/TrueFoundryChatProvider.js';
 export { UserEditComposerContainer } from './containers/UserEditComposerContainer.js';

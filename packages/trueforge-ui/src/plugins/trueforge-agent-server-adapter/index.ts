@@ -1,5 +1,5 @@
 /**
- * Built-in Harness → AgentUIServer factory for `<TrueforgeUI server={{ type: "trueforge", … }} />`.
+ * Built-in Harness → AgentUIServer factory for `<TrueForgeUI server={{ type: "trueforge", … }} />`.
  */
 import { createTrueFoundryServer } from '../../server/createTrueFoundryServer.js';
 import type { CatalogServer } from '../../server/types.js';

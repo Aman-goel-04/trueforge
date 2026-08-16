@@ -262,7 +262,7 @@ function MyLayout({ className }: { className?: string }) {
   );
 }
 
-<TrueforgeUI
+<TrueForgeUI
   layout={MyLayout} // or 'sidebar' | 'drawer' | 'dock' | 'widget'
   theme={{
     preset: 'claude',
@@ -361,7 +361,7 @@ precedence over `theme.icons.robot`. Preset-specific icons such as
 
 ## Layout override
 
-`TrueforgeUI` / chat shell `layout` prop:
+`TrueForgeUI` / chat shell `layout` prop:
 
 | Value                                               | Behavior                     |
 | --------------------------------------------------- | ---------------------------- |
@@ -381,7 +381,7 @@ only the chrome tree is replaced. Equivalent to skipping built-in layouts
 without dropping providers.
 
 ```tsx
-import { TrueforgeUI, Thread, ThreadListContainer } from '@truefoundry/trueforge-ui';
+import { TrueForgeUI, Thread, ThreadListContainer } from '@truefoundry/trueforge-ui';
 
 function CenteredLayout() {
   return (
@@ -392,7 +392,7 @@ function CenteredLayout() {
   );
 }
 
-<TrueforgeUI
+<TrueForgeUI
   server={server}
   agentConfig={{ mode: 'SingleAgent', name: 'my-agent' }}
   layout={CenteredLayout}
@@ -432,14 +432,14 @@ Supported hooks are `markdown`, `inlineCode`,
 `syntaxHighlighter.{root,pre,code,lineNumber}`,
 `openui.{root,scope}`, and `monaco.{root,editor,monacoTheme}`.
 
-The standalone MCP OAuth callback selected by `TrueforgeUI` skips server
+The standalone MCP OAuth callback selected by `TrueForgeUI` skips server
 resolution, but remains inside the same theme and slot provider boundary as the
 main shell.
 
 ## Call flow
 
 ```
-TrueforgeUI({ layout, theme, overrides, … })
+TrueForgeUI({ layout, theme, overrides, … })
   └─ SlotsProvider / ThemeProvider
         ├─ apply preset → CSS variables on .aui-root
         ├─ merge theme.tokens / brand / icons / classNames / className
