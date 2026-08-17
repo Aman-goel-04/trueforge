@@ -3,7 +3,7 @@ import { Daytona, DaytonaError } from '@daytona/sdk';
 import { DaytonaSandboxProvider, SANDBOX_IMAGE_URI, type SandboxBuild } from '@truefoundry/trueforge-core/core';
 import type { Logger } from 'winston';
 import configuration from '../config';
-import type { ISandboxProviderStore } from '../db/sandboxProviderStore';
+import type { ISandboxProviderStore, SandboxProviderRecord } from '../db/sandboxProviderStore';
 import {
   toDaytonaSandboxProviderInput,
   type SandboxBuildMetadata,
@@ -38,6 +38,7 @@ export function toDaytonaSandboxProvider({
   const { apiKey, ...settings } = toDaytonaSandboxProviderInput(manifest);
   return new DaytonaSandboxProvider({
     client: new Daytona({ apiKey }),
+    apiKey,
     ...settings,
     tenantName: tenant_id,
     sandboxImage: build_metadata?.['image_uri'] ?? SANDBOX_IMAGE_URI,
@@ -53,6 +54,14 @@ export function toSandboxStatus(build: SandboxBuild): SandboxStatus {
     status: build.status,
     status_reason: build.reason,
     build_metadata: build.metadata,
+  };
+}
+
+function sandboxStatusFromRecord(record: SandboxProviderRecord): SandboxStatus {
+  return {
+    status: record.status,
+    status_reason: record.status_reason,
+    build_metadata: record.build_metadata,
   };
 }
 
@@ -73,11 +82,7 @@ export async function checkSnapshotStatus({
     return undefined;
   }
 
-  const persisted: SandboxStatus = {
-    status: record.status,
-    status_reason: record.status_reason,
-    build_metadata: record.build_metadata,
-  };
+  const persisted = sandboxStatusFromRecord(record);
 
   const readyIsFresh =
     record.status === 'ready' && Date.now() - Date.parse(record.updated_at) < READY_REVALIDATE_INTERVAL_MS;
@@ -99,6 +104,6 @@ export async function checkSnapshotStatus({
     build = await provider.getImageBuildStatus();
   }
   const next = toSandboxStatus(build);
-  await store.updateSandboxStatus({ tenant_id, ...next });
-  return next;
+  const updated = await store.updateSandboxStatus({ tenant_id, ...next });
+  return updated ? sandboxStatusFromRecord(updated) : next;
 }
