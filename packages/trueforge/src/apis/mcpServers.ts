@@ -247,14 +247,14 @@ export function createSettingsMcpServersRouter<TTransaction>(deps: McpServersRou
         });
 
         let dcrClientToSave: OAuthClientRecord | undefined;
+        const urlChanged =
+          existing !== undefined && existing.manifest.url !== manifest.url && manifest.auth?.type === 'dcr';
         if (manifest.auth?.type === 'dcr') {
           const existingClient = existing
             ? await deps.mcpServerStore.getClient({ id: existing.id }, transaction)
             : undefined;
           // Register when: brand-new server, client was cleared (e.g. invalid_client), or MCP URL changed
           // (resource/AS may differ; reuse would keep stale oauth_server/client for the old AS).
-          // TODO: make manifest URL immutable after create so re-DCR / stale OAuth tokens are not possible via PUT.
-          const urlChanged = existing && existing.manifest.url !== manifest.url;
           const needsDcr = existingClient === undefined || urlChanged;
           if (needsDcr) {
             dcrClientToSave = await createMcpOAuthClient({
@@ -275,15 +275,19 @@ export function createSettingsMcpServersRouter<TTransaction>(deps: McpServersRou
           transaction,
         );
         if (dcrClientToSave !== undefined) {
-          // New DCR registration (create, missing client, or URL change): replace the shared client only.
-          // Existing per-user tokens are left in place; resolve/refresh fails them if they no longer
-          // match the new resource/AS, and users re-authorize from there.
+          // New DCR registration (create, missing client, or URL change): replace the shared client.
           await deps.mcpServerStore.saveClient({ id: saved.id, record: dcrClientToSave }, transaction);
+        }
+        if (urlChanged) {
+          // URL is the OAuth resource/audience — drop every user's tokens and in-flight authorizes.
+          await deps.tokenStore.deleteTokensForServer({ id: saved.id }, transaction);
+          await deps.tokenStore.deletePendingAuthorizationsForServer({ id: saved.id }, transaction);
         }
         return saved;
       });
 
-      // A re-upsert preserves `id`, so a DCR server may already carry a token from a prior authorize.
+      // A re-upsert preserves `id`, so a DCR server may already carry a token from a prior authorize
+      // (unless this PUT changed the URL and cleared all tokens above).
       const token =
         record.manifest.auth?.type === 'dcr' ? await deps.tokenStore.getToken({ id: record.id, userRef }) : undefined;
       return c.json({ data: toConfiguredMcpServer({ record, token }) }, 200);

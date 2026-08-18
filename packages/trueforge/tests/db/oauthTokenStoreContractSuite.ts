@@ -129,6 +129,22 @@ export function runOAuthTokenStoreContractSuite(getHarness: () => OAuthTokenStor
     expect(await h.store.getToken({ id: RESOURCE_ID, userRef: OTHER_USER_REF })).toEqual(forB);
   });
 
+  it('deleteTokensForServer removes every user token for that resource only', async () => {
+    const h = getHarness();
+    await h.seedResource(RESOURCE_ID);
+    await h.seedResource(OTHER_RESOURCE_ID);
+    const other = token({ accessToken: 'access-other' });
+    await h.store.saveToken({ id: RESOURCE_ID, userRef: USER_REF, token: token({ accessToken: 'access-a' }) });
+    await h.store.saveToken({ id: RESOURCE_ID, userRef: OTHER_USER_REF, token: token({ accessToken: 'access-b' }) });
+    await h.store.saveToken({ id: OTHER_RESOURCE_ID, userRef: USER_REF, token: other });
+
+    await h.store.deleteTokensForServer({ id: RESOURCE_ID });
+
+    expect(await h.store.getToken({ id: RESOURCE_ID, userRef: USER_REF })).toBeUndefined();
+    expect(await h.store.getToken({ id: RESOURCE_ID, userRef: OTHER_USER_REF })).toBeUndefined();
+    expect(await h.store.getToken({ id: OTHER_RESOURCE_ID, userRef: USER_REF })).toEqual(other);
+  });
+
   it('savePendingAuthorization + consumePendingAuthorization round-trips, including null fields', async () => {
     const h = getHarness();
     await h.seedResource(RESOURCE_ID);
@@ -168,6 +184,32 @@ export function runOAuthTokenStoreContractSuite(getHarness: () => OAuthTokenStor
 
     expect(await h.store.consumePendingAuthorization({ state: 'state-1' })).toEqual(pending());
     expect(await h.store.consumePendingAuthorization({ state: 'state-2' })).toEqual(other);
+  });
+
+  it('deletePendingAuthorizationsForServer removes every pending row for that resource only', async () => {
+    const h = getHarness();
+    await h.seedResource(RESOURCE_ID);
+    await h.seedResource(OTHER_RESOURCE_ID);
+    const otherUser = pending({
+      state: 'state-other-user',
+      userRef: OTHER_USER_REF,
+      codeVerifier: 'verifier-other-user',
+    });
+    const otherServer = pending({
+      state: 'state-other-server',
+      id: OTHER_RESOURCE_ID,
+      userRef: USER_REF,
+      codeVerifier: 'verifier-other-server',
+    });
+    await h.store.savePendingAuthorization(pending());
+    await h.store.savePendingAuthorization(otherUser);
+    await h.store.savePendingAuthorization(otherServer);
+
+    await h.store.deletePendingAuthorizationsForServer({ id: RESOURCE_ID });
+
+    expect(await h.store.consumePendingAuthorization({ state: 'state-1' })).toBeUndefined();
+    expect(await h.store.consumePendingAuthorization({ state: 'state-other-user' })).toBeUndefined();
+    expect(await h.store.consumePendingAuthorization({ state: 'state-other-server' })).toEqual(otherServer);
   });
 
   it('consumePendingAuthorization drops a row past its TTL', async () => {
