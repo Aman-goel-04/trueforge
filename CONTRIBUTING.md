@@ -24,7 +24,8 @@ Community expertise is most valuable when shared through detailed bug reports, r
 
 For these reasons, we focus community contributions on issue reports, analysis, and feedback, over larger code changes.
 
-If you would still like to contribute code, we keep a dedicated set of issues marked as [help-wanted](https://github.com/truefoundry/trueforge/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22help%20wanted) that are well scoped.
+> [!Note]
+> If you would still like to contribute code, we keep a dedicated set of issues marked as [help-wanted](https://github.com/truefoundry/trueforge/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22help%20wanted%22) that are well scoped.
 
 ### Reporting bugs
 
