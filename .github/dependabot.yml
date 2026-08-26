@@ -22,17 +22,17 @@ updates:
           - minor
           - patch
         patterns:
-          - "*"
+          - '*'
       npm-major:
         applies-to: version-updates
         update-types:
           - major
         patterns:
-          - "*"
+          - '*'
       npm-security:
         applies-to: security-updates
         patterns:
-          - "*"
+          - '*'
 
   - package-ecosystem: github-actions
     directory: /
@@ -41,29 +41,7 @@ updates:
     groups:
       github-actions:
         patterns:
-          - "*"
-
-  - package-ecosystem: docker
-    directories:
-      - /
-      - /benchmark
-    schedule:
-      interval: weekly
-    groups:
-      docker:
-        patterns:
-          - "*"
-
-  # Image pins in docker-compose.yml and docker-compose.dev.yml (keep those
-  # files in sync when reviewing the grouped PR).
-  - package-ecosystem: docker-compose
-    directory: /
-    schedule:
-      interval: weekly
-    groups:
-      docker-compose:
-        patterns:
-          - "*"
+          - '*'
 
   - package-ecosystem: helm
     directory: /charts/trueforge
@@ -72,7 +50,7 @@ updates:
     groups:
       helm:
         patterns:
-          - "*"
+          - '*'
 
   - package-ecosystem: pip
     directory: /benchmark
@@ -81,4 +59,4 @@ updates:
     groups:
       pip:
         patterns:
-          - "*"
+          - '*'
