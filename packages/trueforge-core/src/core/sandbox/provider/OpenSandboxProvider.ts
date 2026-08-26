@@ -435,7 +435,6 @@ export class OpenSandboxProvider implements SandboxProvider {
     return Sandbox.create({
       connectionConfig: this.connectionConfig,
       snapshotId,
-      timeoutSeconds: Math.round(this.timeoutMs / 1000),
       // Conditional spread rather than `resource: this.resourceLimits` — with
       // exactOptionalPropertyTypes, an optional property must be *absent* when there's no
       // value, not present-and-set-to-undefined.
@@ -537,7 +536,7 @@ export class OpenSandboxProvider implements SandboxProvider {
           // when there's no value, not present-and-set-to-undefined.
           ...(params.cwd !== undefined && { workingDirectory: params.cwd }),
           ...(params.env !== undefined && { envs: params.env }),
-          ...(params.timeoutSeconds !== undefined && { timeoutSeconds: params.timeoutSeconds }),
+          timeoutSeconds: params.timeoutSeconds ?? Math.ceil(this.timeoutMs / 1000),
         });
         const stdout = execution.logs.stdout.map(m => m.text).join('');
         const stderr = execution.logs.stderr.map(m => m.text).join('');
@@ -623,15 +622,15 @@ export class OpenSandboxProvider implements SandboxProvider {
 
   createCodeModeTransport(): CodeModeTransport {
     return new CodeModeNatsTransport({
-      resolveHostUrl: async (sandboxId: string) => {
-        const sandbox = await this.getOrCreateSandbox(sandboxId);
-        // Unsigned endpoint: sandboxes are created with `secureAccess: false`, so no
-        // header-based token is required here. If that changes, `resolveHostUrl`'s
-        // contract needs to grow to carry `Endpoint.headers` through to the WS handshake.
-        const { endpoint } = await sandbox.getEndpoint(this.natsBridgePort);
-        const scheme = this.connectionConfig.protocol === 'https' ? 'wss' : 'ws';
-        return `${scheme}://${endpoint}`;
-      },
+      resolveHostUrl: async (sandboxId: string) =>
+        this.executeWithSandboxRecovery(sandboxId, async sandbox => {
+          // Unsigned endpoint: sandboxes are created with `secureAccess: false`, so no
+          // header-based token is required here. If that changes, this transport contract
+          // needs to grow to carry `Endpoint.headers` through to the WS handshake.
+          const { endpoint } = await sandbox.getEndpoint(this.natsBridgePort);
+          const scheme = this.connectionConfig.protocol === 'https' ? 'wss' : 'ws';
+          return `${scheme}://${endpoint}`;
+        }),
       sandboxClientNatsUrl: `ws://localhost:${String(this.natsBridgePort)}`,
       logger: this.logger,
       mcpClientInstall: {

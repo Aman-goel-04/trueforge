@@ -18,7 +18,7 @@ import { TENANT_ID } from './sessions';
 /** Cap the Daytona register round-trip so a slow/unreachable provider can't hold the request (or DB txn) open. */
 const DAYTONA_BUILD_REQUEST_TIMEOUT_MS = 3_000;
 /** OpenSandbox may start a local Docker container and snapshot it before returning. */
-const OPENSANDBOX_BUILD_REQUEST_TIMEOUT_MS = 30_000;
+const OPENSANDBOX_BUILD_REQUEST_TIMEOUT_MS = 150_000;
 
 export interface SandboxProvidersRouterDeps<TTransaction> {
   sandboxProviderStore: ISandboxProviderStore<TTransaction>;

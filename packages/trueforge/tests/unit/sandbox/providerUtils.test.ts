@@ -14,8 +14,8 @@ jest.mock('@truefoundry/trueforge-core/core', () => {
 
 import { DaytonaSandboxProvider, OpenSandboxProvider, SANDBOX_IMAGE_URI } from '@truefoundry/trueforge-core/core';
 import { createLogger } from 'winston';
-import { toSandboxProvider } from '../../../../../src/sandbox/providerUtils';
-import type { SandboxProviderManifest } from '../../../../../src/schemas/sandboxProvider';
+import { toSandboxProvider } from '../../../src/sandbox/providerUtils';
+import type { SandboxProviderManifest } from '../../../src/schemas/sandboxProvider';
 
 const silentLogger = createLogger({ silent: true });
 

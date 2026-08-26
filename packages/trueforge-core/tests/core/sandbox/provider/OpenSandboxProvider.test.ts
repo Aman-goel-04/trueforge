@@ -149,7 +149,7 @@ describe('buildImage', () => {
 });
 
 describe('exec', () => {
-  it('maps stdout/stderr/exitCode and omits unset RunCommandOpts keys entirely', async () => {
+  it('maps stdout/stderr/exitCode and applies the provider exec timeout by default', async () => {
     const sandbox = fakeSandbox();
     (sandbox.commands.run as jest.Mock).mockResolvedValue({
       logs: { stdout: [{ text: '1\n' }], stderr: [] },
@@ -169,7 +169,28 @@ describe('exec', () => {
 
     expect(result).toEqual({ success: true, response: { exitCode: 0, result: '1\n' } });
     const optsArg = (sandbox.commands.run as jest.Mock).mock.calls[0][1];
-    expect(optsArg).toEqual({});
+    expect(optsArg).toEqual({ timeoutSeconds: 60 });
+  });
+
+  it('allows an individual command to override the provider exec timeout', async () => {
+    const sandbox = fakeSandbox();
+    (sandbox.commands.run as jest.Mock).mockResolvedValue({
+      logs: { stdout: [], stderr: [] },
+      exitCode: 0,
+    });
+    (Sandbox.create as jest.Mock).mockResolvedValue(sandbox);
+    const manager = fakeManager({
+      listSnapshots: jest
+        .fn()
+        .mockResolvedValue({ items: [{ id: 'snap-1', status: { state: 'Ready' }, createdAt: new Date() }] }),
+    });
+    (SandboxManager.create as jest.Mock).mockReturnValue(manager);
+
+    const provider = makeProvider();
+    await provider.createSandbox();
+    await provider.exec({ sandboxId: sandbox.id as string, command: 'sleep 1', timeoutSeconds: 7 });
+
+    expect(sandbox.commands.run).toHaveBeenCalledWith('sleep 1', { timeoutSeconds: 7 });
   });
 
   it('resumes a paused sandbox and retries once on a SandboxException', async () => {
