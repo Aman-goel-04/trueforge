@@ -91,6 +91,11 @@ describe('buildImage', () => {
     });
     expect(throwaway.kill).not.toHaveBeenCalled();
     expect(build.status).toBe('pending');
+
+    (manager.listSnapshots as jest.Mock).mockResolvedValue({
+      items: [{ id: 'snap-1', status: { state: 'Ready' }, createdAt: new Date() }],
+    });
+    await provider.getImageBuildStatus();
   });
 
   it('kills the throwaway sandbox once getImageBuildStatus sees the snapshot leave Creating', async () => {
@@ -110,7 +115,15 @@ describe('buildImage', () => {
     await provider.buildImage();
     expect(throwaway.kill).not.toHaveBeenCalled();
 
-    const build = await provider.getImageBuildStatus();
+    const build = await new OpenSandboxProvider({
+      domain: 'localhost:8080',
+      apiKey: 'test-key',
+      tenantName: 'tenant-a',
+      sandboxImage: 'tfy.jfrog.io/tfy-images/trueforge-sandbox:0dab475d3d20a8333cff41f25f88e7134c424cf9',
+      timeoutMs: 60_000,
+      fileMaxBytesForDownload: 1024,
+      logger,
+    }).getImageBuildStatus();
     expect(throwaway.kill).toHaveBeenCalled();
     expect(build.status).toBe('ready');
   });

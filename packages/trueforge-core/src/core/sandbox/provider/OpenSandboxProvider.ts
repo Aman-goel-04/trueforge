@@ -216,14 +216,13 @@ export class OpenSandboxProvider implements SandboxProvider {
   /** Resolved once buildImage()/getImageBuildStatus() sees the golden snapshot as Ready. */
   private readyGoldenSnapshotId: string | undefined;
   /**
-   * The throwaway sandbox from a buildImage() call currently awaiting its snapshot to leave
-   * 'Creating'. See the fix note in buildImage()/getImageBuildStatus() — killing it too early
-   * races the server's background snapshot commit. Single-instance/in-memory tracking: if this
-   * process restarts before the snapshot finishes, the throwaway leaks until its own
-   * THROWAWAY_SANDBOX_TIMEOUT_SECONDS TTL expires it server-side. Acceptable for now; a
-   * multi-replica deployment would need this persisted rather than kept in memory.
+   * Throwaway sandboxes are keyed by snapshot name because each API request constructs a fresh
+   * provider instance. See the fix note in buildImage()/getImageBuildStatus() — killing one too
+   * early races the server's background snapshot commit. Single-process tracking means a process
+   * restart can still leak a throwaway until its server-side TTL; multi-replica deployments need
+   * this state persisted or coordinated externally.
    */
-  private pendingThrowawaySandbox: Sandbox | undefined;
+  private static readonly pendingThrowawaySandboxes = new Map<string, Sandbox>();
 
   private static readonly cachedSandboxes = new Map<string, Sandbox>();
   // De-dupes concurrent recovery attempts on the same sandbox to a single resume+retry round-trip.
@@ -325,18 +324,18 @@ export class OpenSandboxProvider implements SandboxProvider {
     // here races that background job and fails with `docker.errors.NotFound: ... does not
     // exist` inside the server's `_create_snapshot`. So we deliberately do NOT kill it now;
     // getImageBuildStatus() kills it once polling shows the snapshot has left 'Creating'.
-    this.pendingThrowawaySandbox = throwaway;
+    OpenSandboxProvider.pendingThrowawaySandboxes.set(name, throwaway);
     const snapshot = await this.manager.createSnapshot(throwaway.id, { name });
     return this.toBuild(snapshot.id, snapshot.status.state, snapshot.status.message);
   }
 
   /** Kills and releases a throwaway build sandbox once its snapshot is done with it (Ready or Failed). */
-  private async releasePendingThrowaway(): Promise<void> {
-    const throwaway = this.pendingThrowawaySandbox;
+  private async releasePendingThrowaway(name: string): Promise<void> {
+    const throwaway = OpenSandboxProvider.pendingThrowawaySandboxes.get(name);
     if (!throwaway) {
       return;
     }
-    this.pendingThrowawaySandbox = undefined;
+    OpenSandboxProvider.pendingThrowawaySandboxes.delete(name);
     await throwaway.kill().catch((error: unknown) => {
       this.logger.warn('Failed to kill throwaway sandbox after snapshot completed', extractErrorLogFields(error));
     });
@@ -357,7 +356,7 @@ export class OpenSandboxProvider implements SandboxProvider {
       // Snapshot has left 'Creating' — the throwaway's container is no longer needed by the
       // server's commit job, so it's now safe to release it (if this process is the one that
       // created it; see the field's doc comment for the multi-replica caveat).
-      await this.releasePendingThrowaway();
+      await this.releasePendingThrowaway(name);
     }
     if (isReadySnapshotState(existing.status.state)) {
       this.readyGoldenSnapshotId = existing.id;
