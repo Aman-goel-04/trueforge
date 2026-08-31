@@ -7,6 +7,7 @@ import type { ISessionStore } from '../../../src/agent-session/store/ISessionSto
 import { decodeSessionEventPageToken } from '../../../src/agent-session/store/SessionEventPageToken';
 import {
   PreviousTurnRunningError,
+  SessionExternalIdConflictError,
   SessionNotFoundError,
   SessionStoreConflictError,
   SessionStoreInvariantError,
@@ -85,6 +86,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
       created_by: 'user-1',
       agent: { type: 'inline', spec: agentSpec },
       custom: null,
+      external_id: null,
     });
   }
 
@@ -190,6 +192,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'alice@example.com',
         agent: { type: 'inline', spec: makeAgentSpec() },
         custom: null,
+        external_id: null,
       });
       const session = mustGet(await store.getSession({ tenant_id: tenant, session_id: 'created-by-session' }));
       expect(session.created_by).toBe('alice@example.com');
@@ -216,6 +219,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'user-1',
         agent: { type: 'reference', id: 'agent-abc', name: null },
         custom: null,
+        external_id: null,
       });
       await seedSession(store);
 
@@ -243,6 +247,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'user-1',
         agent: { type: 'reference', id: 'agent-abc', name: null },
         custom: null,
+        external_id: null,
       });
 
       await expect(
@@ -301,8 +306,99 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
           created_by: 'user-1',
           agent: { type: 'inline', spec: makeAgentSpec() },
           custom: null,
+          external_id: null,
         }),
       ).rejects.toBeInstanceOf(SessionStoreConflictError);
+    });
+
+    it('createSession stores a null external_id', async () => {
+      const store = createStore();
+      await seedSession(store);
+      const record = await store.getSession({ tenant_id: tenant, session_id: sessionId });
+      expect(mustGet(record).external_id).toBeNull();
+    });
+
+    it('createSession persists external_id and getSessionByExternalId finds it', async () => {
+      const store = createStore();
+      await store.createSession({
+        tenant_id: tenant,
+        session_id: sessionId,
+        created_by: 'user-1',
+        agent: { type: 'inline', spec: makeAgentSpec() },
+        custom: null,
+        external_id: 'run-1',
+      });
+      const byId = await store.getSession({ tenant_id: tenant, session_id: sessionId });
+      expect(mustGet(byId).external_id).toBe('run-1');
+      const byExternal = await store.getSessionByExternalId({ tenant_id: tenant, external_id: 'run-1' });
+      expect(mustGet(byExternal).session_id).toBe(sessionId);
+      expect(await store.getSessionByExternalId({ tenant_id: tenant, external_id: 'missing' })).toBeUndefined();
+      expect(await store.getSessionByExternalId({ tenant_id: 'other', external_id: 'run-1' })).toBeUndefined();
+    });
+
+    it('createSession unique external_id within a tenant; nulls and other tenants do not collide', async () => {
+      const store = createStore();
+      await store.createSession({
+        tenant_id: tenant,
+        session_id: 's-a',
+        created_by: 'user-1',
+        agent: { type: 'inline', spec: makeAgentSpec() },
+        custom: null,
+        external_id: 'shared-key',
+      });
+      // Specifically the external-id arm, not just any conflict: get-or-create
+      // treats this rejection as its normal repeat-call path.
+      await expect(
+        store.createSession({
+          tenant_id: tenant,
+          session_id: 's-b',
+          created_by: 'user-1',
+          agent: { type: 'inline', spec: makeAgentSpec() },
+          custom: null,
+          external_id: 'shared-key',
+        }),
+      ).rejects.toBeInstanceOf(SessionExternalIdConflictError);
+
+      await store.createSession({
+        tenant_id: 'other',
+        session_id: 's-c',
+        created_by: 'user-1',
+        agent: { type: 'inline', spec: makeAgentSpec() },
+        custom: null,
+        external_id: 'shared-key',
+      });
+      await store.createSession({
+        tenant_id: tenant,
+        session_id: 's-d',
+        created_by: 'user-1',
+        agent: { type: 'inline', spec: makeAgentSpec() },
+        custom: null,
+        external_id: null,
+      });
+      await store.createSession({
+        tenant_id: tenant,
+        session_id: 's-e',
+        created_by: 'user-1',
+        agent: { type: 'inline', spec: makeAgentSpec() },
+        custom: null,
+        external_id: null,
+      });
+    });
+
+    it('getSessionByExternalId does not bump last_activity_timestamp_ms', async () => {
+      const store = createStore();
+      await store.createSession({
+        tenant_id: tenant,
+        session_id: sessionId,
+        created_by: 'user-1',
+        agent: { type: 'inline', spec: makeAgentSpec() },
+        custom: null,
+        external_id: 'run-1',
+      });
+      const first = await store.getSessionByExternalId({ tenant_id: tenant, external_id: 'run-1' });
+      await new Promise(r => setTimeout(r, 5));
+      const second = await store.getSessionByExternalId({ tenant_id: tenant, external_id: 'run-1' });
+      expect(mustGet(second).last_activity_timestamp_ms).toBe(mustGet(first).last_activity_timestamp_ms);
     });
   });
 
@@ -316,6 +412,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'user-1',
         agent: { type: 'inline', spec: makeAgentSpec() },
         custom: null,
+        external_id: null,
       });
 
       await store.createTurn(
@@ -498,6 +595,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'user-1',
         agent: { type: 'inline', spec: makeAgentSpec() },
         custom: null,
+        external_id: null,
       });
       await store.createTurn(makeCreateTurnInput({ sessionId: nested, turnId: 'turn-1' }));
       const nestedKeys = { session_id: nested, turn_id: 'turn-1' };
@@ -626,6 +724,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
           created_by: 'user-1',
           agent: { type: 'inline', spec: makeAgentSpec() },
           custom: null,
+          external_id: null,
         });
         await new Promise(r => setTimeout(r, 2));
       }
@@ -640,6 +739,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'user-1',
         agent: { type: 'inline', spec: makeAgentSpec() },
         custom: null,
+        external_id: null,
       });
 
       const desc = await store.listSessions({
@@ -792,6 +892,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'alice',
         agent: { type: 'inline', spec: makeAgentSpec() },
         custom: null,
+        external_id: null,
       });
       await store.createSession({
         tenant_id: tenant,
@@ -799,6 +900,7 @@ export function runStoreContractSuite(createStore: () => ISessionStore) {
         created_by: 'bob',
         agent: { type: 'inline', spec: makeAgentSpec() },
         custom: null,
+        external_id: null,
       });
 
       const aliceOnly = await store.listSessions({
