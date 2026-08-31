@@ -40,6 +40,8 @@ export default defineRailway(_ctx => {
     env: {
       // From-source image; root Dockerfile is the published npm recipe and needs APP_VERSION.
       RAILWAY_DOCKERFILE_PATH: 'Dockerfile.dev',
+      // Postgres + Redis (hosted topology)
+      STANDALONE: 'false',
       DATABASE_URL: db.env.DATABASE_URL,
       REDIS_URL: cache.env.REDIS_URL,
       // Expanded by Railway at runtime once a public domain exists on this service.

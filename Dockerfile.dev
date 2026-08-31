@@ -73,10 +73,8 @@ RUN pnpm install --frozen-lockfile --offline --prod --filter @truefoundry/truefo
 # runner: minimal image with prod node_modules + built artifacts.
 # ---------------------------------------------------------------------------
 FROM base AS runner
-# HOST=0.0.0.0 so Railway / Compose published ports and probes reach the process.
-# STANDALONE=false ⇒ Postgres + Redis (hosted topology this image is built for).
+
 ENV NODE_ENV=production \
-    STANDALONE=false \
     HOST=0.0.0.0
 
 # Production dependency tree (pnpm workspace symlinks preserved).
