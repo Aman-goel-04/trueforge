@@ -1,4 +1,14 @@
+## [0.1.4-rc.1] - 2026-09-01
+
 ## [0.1.4-rc.0] - 2026-08-27
+
+## 0.1.4-rc.1
+
+### Patch Changes
+
+- 648273b: Regenerate SDK from updated OpenAPI spec.
+- 52987a7: Add `internal.agents.getCodeSnippets` API under the new SDK `internal` namespace.
+- 38ce068: Add tenant-unique optional session `external_id`, `Sessions.getOrCreateByExternalId`, and an idempotent `POST /internal/sessions/get-or-create-by-external-id` endpoint and SDK method.
 
 ## [0.1.3] - 2026-08-19
 

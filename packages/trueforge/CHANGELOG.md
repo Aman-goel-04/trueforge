@@ -1,5 +1,35 @@
 # @truefoundry/trueforge
 
+## 0.2.0-rc.1
+
+### Minor Changes
+
+- a3a1395: Adds first-class cron schedules for existing agents: persist them, manage them via /api/v1/schedules, validate cron policy at write time, and advance due runs through a single-dispatcher claim path.
+- ef316d2: Add optional `OIDC_ALLOWED_EMAILS` allowlist (exact addresses and `*` globs) so OIDC logins can be limited to approved emails or domains.
+- 2025cef: Store Postgres app tables and Kysely migration bookkeeping in a dedicated `trueforge` schema, with an automatic one-time move from `public` so existing installs keep their data and migration history.
+
+### Patch Changes
+
+- d89b2ff: Persist zero-initialized metrics on agent sessions.
+- 172bf14: Add caller-scoped session metrics meters, charts, and chart-data under `/internal/metrics` via a server-owned `ISessionMetricsStore`.
+- d89b2ff: Fold session metrics totals on createTurn and terminal writes.
+- a60f4c2: Add GET /api/v1/agents/{agent_id}/code-snippets with TypeScript TrueForge SDK stream and non-stream samples.
+- 58940a7: Report a Daytona key that cannot register snapshots as missing key permissions (403) instead of an invalid API key (422), and name the grants to add in the Daytona dashboard.
+- c40129c: Cap Daytona status-refresh calls at 1 minute so a stalled provider cannot hang request handlers.
+- f4fb4bd: Accept `DATABASE_URL` for hosted mode so managed Postgres (e.g. Railway) can be wired without discrete `POSTGRES_*` vars.
+- feb94aa: Add GET /api/v1/schedules/{schedule_id}/runs to list a schedule's runs (newest `scheduled_for` first), with the same creator-or-admin access as other schedule routes.
+- 4ced8ef: Dispatch schedule runs through the session/turn API: get-or-create a session keyed by run id, then create a turn only when that session has none.
+- 38ce068: Add tenant-unique optional session `external_id`, `Sessions.getOrCreateByExternalId`, and an idempotent `POST /internal/sessions/get-or-create-by-external-id` endpoint and SDK method.
+- Updated dependencies [648273b]
+- Updated dependencies [d89b2ff]
+- Updated dependencies [172bf14]
+- Updated dependencies [d89b2ff]
+- Updated dependencies [c40129c]
+- Updated dependencies [52987a7]
+- Updated dependencies [38ce068]
+  - @truefoundry/trueforge-sdk@0.1.4-rc.1
+  - @truefoundry/trueforge-core@0.2.0-rc.1
+
 ## 0.2.0-rc.0
 
 ### Minor Changes

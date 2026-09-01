@@ -1,5 +1,15 @@
 # @truefoundry/trueforge-core
 
+## 0.2.0-rc.1
+
+### Patch Changes
+
+- d89b2ff: Persist zero-initialized metrics on agent sessions.
+- 172bf14: Add caller-scoped session metrics meters, charts, and chart-data under `/internal/metrics` via a server-owned `ISessionMetricsStore`.
+- d89b2ff: Fold session metrics totals on createTurn and terminal writes.
+- c40129c: Cap Daytona status-refresh calls at 1 minute so a stalled provider cannot hang request handlers.
+- 38ce068: Add tenant-unique optional session `external_id`, `Sessions.getOrCreateByExternalId`, and an idempotent `POST /internal/sessions/get-or-create-by-external-id` endpoint and SDK method.
+
 ## 0.2.0-rc.0
 
 ### Minor Changes
